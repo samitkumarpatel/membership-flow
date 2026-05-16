@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LuxeSalon — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/config.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
+</head>
+<body class="bg-gray-100 text-slate-800 min-h-screen">
+<div id="app" class="flex h-screen overflow-hidden"></div>
+<script>
+const { createApp, ref, reactive, computed, onMounted, watch } = Vue
+
+// ── API ───────────────────────────────────────────────────────────────────────
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch((window.APP_CONFIG?.apiBase ?? '/api') + url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `Error ${res.status}`)
+  }
+  return res.status === 204 ? null : res.json()
+}
+
+const api = {
+  plans: {
+    list:      ()          => apiFetch('/admin/plans'),
+    create:    b           => apiFetch('/admin/plans', { method: 'POST', body: b }),
+    update:    (id, b)     => apiFetch(`/admin/plans/${id}`, { method: 'PUT', body: b }),
+    setStatus: (id, s)     => apiFetch(`/admin/plans/${id}/status?status=${s}`, { method: 'PATCH' }),
+  },
+  members: {
+    list: () => apiFetch('/admin/members'),
+  },
+  memberships: {
+    list:   s  => apiFetch('/admin/memberships' + (s ? `?status=${s}` : '')),
+    cancel: id => apiFetch(`/admin/memberships/${id}/cancel`, { method: 'PATCH' }),
+  },
+}
+
+// ── Shared components ─────────────────────────────────────────────────────────
+
+const StatusBadge = {
+  props: ['status'],
+  computed: {
+    cls() {
+      return {
+        ACTIVE:    'bg-green-100 text-green-700',
+        INACTIVE:  'bg-stone-100 text-stone-500',
+        ARCHIVED:  'bg-stone-200 text-stone-400',
+        PENDING:   'bg-yellow-100 text-yellow-700',
+        CANCELLED: 'bg-red-100 text-red-600',
+        EXPIRED:   'bg-stone-100 text-stone-500',
+        FAILED:    'bg-red-100 text-red-600',
+      }[this.status] || 'bg-stone-100 text-stone-500'
+    }
+  },
+  template: `<span :class="cls" class="text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap">{{ status }}</span>`,
+}
+
+// ── DashboardView ─────────────────────────────────────────────────────────────
+
+const DashboardView = {
+  components: { StatusBadge },
+  setup() {
+    const stats = reactive({ plans: 0, members: 0, active: 0, pending: 0 })
+    const recentMemberships = ref([])
+    const loading = ref(true)
+
+    onMounted(async () => {
+      try {
+        const [plans, members, allMemberships] = await Promise.all([
+          api.plans.list(),
+          api.members.list(),
+          api.memberships.list(),
+        ])
+        stats.plans   = plans.filter(p => p.status === 'ACTIVE').length
+        stats.members = members.length
+        stats.active  = allMemberships.filter(m => m.status === 'ACTIVE').length
+        stats.pending = allMemberships.filter(m => m.status === 'PENDING').length
+        recentMemberships.value = allMemberships.slice(0, 5)
+      } catch (e) { console.error(e) }
+      finally { loading.value = false }
+    })
+
+    return { stats, recentMemberships, loading }
+  },
+  template: `
+    <div>
+      <h1 class="text-xl font-bold text-slate-800 mb-6">Dashboard</h1>
+      <div v-if="loading" class="text-slate-400">Loading…</div>
+      <template v-else>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Active Plans</p>
+            <p class="text-3xl font-bold text-slate-800">{{ stats.plans }}</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Members</p>
+            <p class="text-3xl font-bold text-slate-800">{{ stats.members }}</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Active Subs</p>
+            <p class="text-3xl font-bold text-green-600">{{ stats.active }}</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Pending</p>
+            <p class="text-3xl font-bold text-yellow-500">{{ stats.pending }}</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100">
+            <h2 class="font-semibold text-slate-700">Recent Memberships</h2>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
+              <tr>
+                <th class="px-5 py-3 text-left font-medium">Member ID</th>
+                <th class="px-5 py-3 text-left font-medium">Plan ID</th>
+                <th class="px-5 py-3 text-left font-medium">Gateway</th>
+                <th class="px-5 py-3 text-left font-medium">Status</th>
+                <th class="px-5 py-3 text-left font-medium">Created</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr v-if="recentMemberships.length === 0">
+                <td colspan="5" class="px-5 py-8 text-center text-slate-400">No memberships yet.</td>
+              </tr>
+              <tr v-for="m in recentMemberships" :key="m.id" class="hover:bg-slate-50">
+                <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.memberId.slice(0,12) }}…</td>
+                <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.planId.slice(0,12) }}…</td>
+                <td class="px-5 py-3 text-slate-600">{{ m.gateway }}</td>
+                <td class="px-5 py-3"><StatusBadge :status="m.status"/></td>
+                <td class="px-5 py-3 text-slate-400">{{ new Date(m.createdAt).toLocaleDateString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </div>
+  `,
+}
+
+// ── PlansView (admin) ─────────────────────────────────────────────────────────
+
+const PlansView = {
+  components: { StatusBadge },
+  setup() {
+    const plans = ref([]), loading = ref(true), error = ref('')
+    const showModal = ref(false), saving = ref(false), modalError = ref('')
+    const editingId = ref(null)
+
+    const GATEWAYS = ['STRIPE', 'SHOPIFY']
+    const STATUSES = ['ACTIVE', 'INACTIVE']
+
+    const emptyForm = () => ({ name: '', description: '', price: '', currency: 'USD', intervalDays: 30, benefits: '', gateway: 'STRIPE' })
+    const form = reactive(emptyForm())
+
+    async function load() {
+      try { plans.value = await api.plans.list() }
+      catch (e) { error.value = e.message }
+      finally { loading.value = false }
+    }
+
+    onMounted(load)
+
+    function openCreate() {
+      Object.assign(form, emptyForm())
+      editingId.value = null
+      modalError.value = ''
+      showModal.value = true
+    }
+
+    function openEdit(p) {
+      Object.assign(form, {
+        name: p.name, description: p.description, price: p.price,
+        currency: p.currency, intervalDays: p.intervalDays,
+        benefits: (p.benefits || []).join('\n'), gateway: p.gateway,
+      })
+      editingId.value = p.id
+      modalError.value = ''
+      showModal.value = true
+    }
+
+    async function save() {
+      if (!form.name || !form.price) { modalError.value = 'Name and price are required.'; return }
+      saving.value = true; modalError.value = ''
+      const body = {
+        name: form.name, description: form.description,
+        price: parseFloat(form.price), currency: form.currency,
+        intervalDays: parseInt(form.intervalDays),
+        benefits: form.benefits.split('\n').map(s => s.trim()).filter(Boolean),
+        gateway: form.gateway,
+      }
+      try {
+        if (editingId.value) await api.plans.update(editingId.value, body)
+        else await api.plans.create(body)
+        showModal.value = false
+        await load()
+      } catch (e) { modalError.value = e.message }
+      finally { saving.value = false }
+    }
+
+    async function toggleStatus(p) {
+      const next = p.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+      try {
+        await api.plans.setStatus(p.id, next)
+        await load()
+      } catch (e) { error.value = e.message }
+    }
+
+    return { plans, loading, error, showModal, saving, modalError, form, editingId, GATEWAYS, openCreate, openEdit, save, toggleStatus }
+  },
+  template: `
+    <div>
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-xl font-bold text-slate-800">Membership Plans</h1>
+        <button @click="openCreate" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+          + New Plan
+        </button>
+      </div>
+      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
+      <div v-if="loading" class="text-slate-400">Loading…</div>
+
+      <div v-else class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
+            <tr>
+              <th class="px-5 py-3 text-left font-medium">Name</th>
+              <th class="px-5 py-3 text-left font-medium">Price</th>
+              <th class="px-5 py-3 text-left font-medium">Interval</th>
+              <th class="px-5 py-3 text-left font-medium">Gateway</th>
+              <th class="px-5 py-3 text-left font-medium">Status</th>
+              <th class="px-5 py-3 text-left font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr v-if="plans.length === 0">
+              <td colspan="6" class="px-5 py-10 text-center text-slate-400">No plans yet. Create one to get started.</td>
+            </tr>
+            <tr v-for="p in plans" :key="p.id" class="hover:bg-slate-50">
+              <td class="px-5 py-3">
+                <div class="font-medium text-slate-800">{{ p.name }}</div>
+                <div class="text-xs text-slate-400 truncate max-w-xs">{{ p.description }}</div>
+              </td>
+              <td class="px-5 py-3 font-semibold text-slate-700">{{ p.currency }} {{ Number(p.price).toFixed(2) }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ p.intervalDays }}d</td>
+              <td class="px-5 py-3 text-slate-500">{{ p.gateway }}</td>
+              <td class="px-5 py-3"><StatusBadge :status="p.status"/></td>
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <button @click="openEdit(p)" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Edit</button>
+                  <button @click="toggleStatus(p)"
+                          :class="p.status === 'ACTIVE' ? 'text-red-400 hover:text-red-600' : 'text-green-600 hover:text-green-800'"
+                          class="text-xs font-medium">
+                    {{ p.status === 'ACTIVE' ? 'Deactivate' : 'Activate' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal -->
+      <div v-if="showModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-7">
+          <h2 class="text-lg font-bold text-slate-800 mb-5">{{ editingId ? 'Edit Plan' : 'New Plan' }}</h2>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="col-span-2">
+                <label class="block text-xs font-medium text-slate-600 mb-1">Name *</label>
+                <input v-model="form.name" placeholder="Gold Membership"
+                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Price *</label>
+                <input v-model="form.price" type="number" step="0.01" placeholder="49.99"
+                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Currency</label>
+                <input v-model="form.currency" placeholder="USD"
+                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Billing interval (days)</label>
+                <input v-model="form.intervalDays" type="number" placeholder="30"
+                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Gateway</label>
+                <select v-model="form.gateway"
+                        class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                  <option v-for="g in GATEWAYS" :key="g">{{ g }}</option>
+                </select>
+              </div>
+              <div class="col-span-2">
+                <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
+                <input v-model="form.description" placeholder="Brief plan description"
+                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+              </div>
+              <div class="col-span-2">
+                <label class="block text-xs font-medium text-slate-600 mb-1">Benefits <span class="text-slate-400 font-normal">(one per line)</span></label>
+                <textarea v-model="form.benefits" rows="4" placeholder="Unlimited haircuts&#10;20% retail discount&#10;Priority booking"
+                          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+              </div>
+            </div>
+            <p v-if="modalError" class="text-red-500 text-sm">{{ modalError }}</p>
+            <div class="flex justify-end gap-3 pt-1">
+              <button @click="showModal = false" class="text-sm text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors">Cancel</button>
+              <button @click="save" :disabled="saving"
+                      class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
+                {{ saving ? 'Saving…' : 'Save Plan' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+}
+
+// ── MembersView ───────────────────────────────────────────────────────────────
+
+const MembersView = {
+  setup() {
+    const members = ref([]), loading = ref(true), error = ref(''), search = ref('')
+    onMounted(async () => {
+      try { members.value = await api.members.list() }
+      catch (e) { error.value = e.message }
+      finally { loading.value = false }
+    })
+    const filtered = computed(() => {
+      const q = search.value.toLowerCase()
+      return q ? members.value.filter(m => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)) : members.value
+    })
+    return { members, loading, error, search, filtered }
+  },
+  template: `
+    <div>
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-xl font-bold text-slate-800">Members</h1>
+        <span class="text-sm text-slate-400">{{ members.length }} total</span>
+      </div>
+      <div class="mb-4">
+        <input v-model="search" placeholder="Search by name or email…"
+               class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+      </div>
+      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
+      <div v-if="loading" class="text-slate-400">Loading…</div>
+      <div v-else class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
+            <tr>
+              <th class="px-5 py-3 text-left font-medium">Name</th>
+              <th class="px-5 py-3 text-left font-medium">Email</th>
+              <th class="px-5 py-3 text-left font-medium">Phone</th>
+              <th class="px-5 py-3 text-left font-medium">Joined</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr v-if="filtered.length === 0">
+              <td colspan="4" class="px-5 py-10 text-center text-slate-400">
+                {{ search ? 'No members match your search.' : 'No members yet.' }}
+              </td>
+            </tr>
+            <tr v-for="m in filtered" :key="m.id" class="hover:bg-slate-50">
+              <td class="px-5 py-3">
+                <div class="font-medium text-slate-800">{{ m.name }}</div>
+                <div class="font-mono text-xs text-slate-300">{{ m.id }}</div>
+              </td>
+              <td class="px-5 py-3 text-slate-600">{{ m.email }}</td>
+              <td class="px-5 py-3 text-slate-500">{{ m.phone || '—' }}</td>
+              <td class="px-5 py-3 text-slate-400">{{ new Date(m.createdAt).toLocaleDateString() }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `,
+}
+
+// ── MembershipsView ───────────────────────────────────────────────────────────
+
+const MembershipsView = {
+  components: { StatusBadge },
+  setup() {
+    const memberships = ref([]), loading = ref(true), error = ref('')
+    const statusFilter = ref('')
+    const STATUSES = ['', 'ACTIVE', 'PENDING', 'CANCELLED', 'EXPIRED', 'FAILED']
+
+    async function load() {
+      loading.value = true; error.value = ''
+      try { memberships.value = await api.memberships.list(statusFilter.value) }
+      catch (e) { error.value = e.message }
+      finally { loading.value = false }
+    }
+
+    onMounted(load)
+    watch(statusFilter, load)
+
+    async function cancel(id) {
+      if (!confirm('Cancel this membership?')) return
+      try {
+        await api.memberships.cancel(id)
+        await load()
+      } catch (e) { error.value = e.message }
+    }
+
+    return { memberships, loading, error, statusFilter, STATUSES, cancel }
+  },
+  template: `
+    <div>
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-xl font-bold text-slate-800">Memberships</h1>
+        <span class="text-sm text-slate-400">{{ memberships.length }} shown</span>
+      </div>
+
+      <div class="mb-4 flex items-center gap-2 flex-wrap">
+        <button v-for="s in STATUSES" :key="s"
+                @click="statusFilter = s"
+                :class="statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'"
+                class="text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
+          {{ s || 'All' }}
+        </button>
+      </div>
+
+      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
+      <div v-if="loading" class="text-slate-400">Loading…</div>
+      <div v-else class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
+            <tr>
+              <th class="px-5 py-3 text-left font-medium">Member ID</th>
+              <th class="px-5 py-3 text-left font-medium">Plan ID</th>
+              <th class="px-5 py-3 text-left font-medium">Gateway</th>
+              <th class="px-5 py-3 text-left font-medium">Status</th>
+              <th class="px-5 py-3 text-left font-medium">Renews</th>
+              <th class="px-5 py-3 text-left font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr v-if="memberships.length === 0">
+              <td colspan="6" class="px-5 py-10 text-center text-slate-400">No memberships found.</td>
+            </tr>
+            <tr v-for="m in memberships" :key="m.id" class="hover:bg-slate-50">
+              <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.memberId.slice(0,12) }}…</td>
+              <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.planId.slice(0,12) }}…</td>
+              <td class="px-5 py-3 text-slate-600">{{ m.gateway }}</td>
+              <td class="px-5 py-3"><StatusBadge :status="m.status"/></td>
+              <td class="px-5 py-3 text-slate-400">
+                {{ m.currentPeriodEnd ? new Date(m.currentPeriodEnd).toLocaleDateString() : '—' }}
+              </td>
+              <td class="px-5 py-3">
+                <button v-if="m.status === 'ACTIVE'" @click="cancel(m.id)"
+                        class="text-xs font-medium text-red-400 hover:text-red-600">
+                  Cancel
+                </button>
+                <span v-else class="text-xs text-slate-300">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `,
+}
+
+// ── Router ────────────────────────────────────────────────────────────────────
+
+const router = VueRouter.createRouter({
+  history: VueRouter.createWebHashHistory(),
+  routes: [
+    { path: '/',               redirect: '/dashboard' },
+    { path: '/dashboard',      component: DashboardView },
+    { path: '/plans',          component: PlansView },
+    { path: '/members',        component: MembersView },
+    { path: '/memberships',    component: MembershipsView },
+  ],
+})
+
+// ── Root App with Sidebar ─────────────────────────────────────────────────────
+
+const navItems = [
+  { path: '/dashboard',   label: 'Dashboard',   icon: '▦' },
+  { path: '/plans',       label: 'Plans',        icon: '✦' },
+  { path: '/members',     label: 'Members',      icon: '◎' },
+  { path: '/memberships', label: 'Memberships',  icon: '↻' },
+]
+
+createApp({
+  components: { StatusBadge },
+  setup() {
+    const route = VueRouter.useRoute()
+    const isActive = (path) => route.path === path
+    return { navItems, isActive }
+  },
+  template: `
+    <!-- Sidebar -->
+    <aside class="w-56 shrink-0 bg-slate-800 flex flex-col h-screen sticky top-0">
+      <div class="px-5 py-5 border-b border-slate-700">
+        <div class="text-white font-bold text-base tracking-tight">✂ LuxeSalon</div>
+        <div class="text-slate-400 text-xs mt-0.5">Admin Panel</div>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-0.5">
+        <a v-for="item in navItems" :key="item.path"
+           :href="'#' + item.path"
+           :class="isActive(item.path) ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+          <span class="text-base leading-none">{{ item.icon }}</span>
+          {{ item.label }}
+        </a>
+      </nav>
+      <div class="px-5 py-4 border-t border-slate-700">
+        <a href="/index.html" class="text-slate-500 hover:text-slate-300 text-xs transition-colors">← User portal</a>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 overflow-y-auto">
+      <div class="max-w-5xl mx-auto px-6 py-8">
+        <router-view/>
+      </div>
+    </div>
+  `
+}).use(router).mount('#app')
+</script>
+</body>
+</html>
