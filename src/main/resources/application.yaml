@@ -4,6 +4,12 @@ spring:
   mongodb:
     database: membership_flow
 
+shopify:
+  store-domain: ${SHOPIFY_STORE_DOMAIN:helinhair-2.myshopify.com}
+  client-id: ${SHOPIFY_CLIENT_ID:placeholder-client-id}
+  client-secret: ${SHOPIFY_CLIENT_SECRET:placeholder-client-secret}
+  api-version: 2026-04
+
 management:
   endpoints:
     web:

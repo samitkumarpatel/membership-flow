@@ -3,230 +3,974 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Membership Portal</title>
+  <title>Shopify Subscription Admin</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="/js/api.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f4f6f9; color: #1a1a2e; min-height: 100vh; }
-    header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
-    header h1 { font-size: 1.2rem; font-weight: 600; }
-    .user-chip { display: flex; align-items: center; gap: .5rem; font-size: .875rem; }
-    .user-chip button { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; padding: .3rem .75rem; border-radius: 20px; cursor: pointer; font-size: .8rem; }
-    main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
-    .auth-card { background: #fff; border-radius: 12px; padding: 2rem; max-width: 400px; margin: 3rem auto; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-    .auth-card h2 { font-size: 1.1rem; margin-bottom: 1.25rem; }
-    .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .9rem; }
-    .field label { font-size: .8rem; font-weight: 600; color: #555; }
-    .field input { padding: .55rem .8rem; border: 1px solid #ddd; border-radius: 7px; font-size: .95rem; }
-    .field input:focus { outline: none; border-color: #6c63ff; }
-    .btn { display: inline-block; padding: .55rem 1.1rem; border-radius: 7px; font-size: .9rem; cursor: pointer; border: none; font-weight: 500; text-align: center; }
-    .btn-primary { background: #6c63ff; color: #fff; width: 100%; }
-    .btn-primary:hover { background: #574fd6; }
-    .btn-outline { background: transparent; border: 1px solid #6c63ff; color: #6c63ff; width: 100%; margin-top: .5rem; }
-    .btn-sm { width: auto; padding: .35rem .8rem; font-size: .85rem; }
-    .btn-danger-sm { background: #ffeaea; color: #c0392b; border: none; padding: .35rem .7rem; border-radius: 6px; font-size: .8rem; cursor: pointer; }
-    .error { color: #c0392b; font-size: .85rem; margin-top: .4rem; }
-    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
-    .tabs button { padding: .45rem 1.1rem; border-radius: 20px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: .875rem; color: #555; }
-    .tabs button.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
-    /* Subscription cards */
-    .sub-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.25rem; overflow: hidden; }
-    .sub-card .sub-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #eee; }
-    .sub-card .sub-header h3 { font-size: 1.05rem; margin-bottom: .2rem; }
-    .sub-card .sub-header p { font-size: .875rem; color: #666; }
-    .plan-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .75rem; padding: 1.25rem 1.5rem; }
-    .plan-option { border: 2px solid #eee; border-radius: 10px; padding: 1rem; cursor: pointer; transition: border-color .15s; }
-    .plan-option:hover { border-color: #6c63ff; }
-    .plan-option.selected { border-color: #6c63ff; background: #f5f3ff; }
-    .plan-option .interval { font-weight: 700; font-size: .9rem; }
-    .plan-option .price { font-size: 1.4rem; font-weight: 700; color: #6c63ff; margin: .3rem 0; }
-    .plan-option .price small { font-size: .85rem; font-weight: 400; color: #888; }
-    .sub-card .sub-footer { padding: .9rem 1.5rem; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
-    .badge { display: inline-block; padding: .2rem .6rem; border-radius: 20px; font-size: .75rem; font-weight: 600; }
-    .badge-active { background: #e6faf0; color: #1d9e6a; }
-    .badge-pending { background: #fff8e6; color: #c07c00; }
-    .badge-cancelled { background: #ffeaea; color: #c0392b; }
-    .badge-suspended { background: #fdf0ff; color: #8e44ad; }
-    .membership-card { background: #fff; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; flex-wrap: wrap; gap: .5rem; }
-    .banner { padding: 1rem 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; font-size: .9rem; }
-    .banner-success { background: #e6faf0; color: #1d9e6a; border: 1px solid #b2dfcc; }
-    .banner-warn { background: #fff8e6; color: #c07c00; border: 1px solid #f5d576; }
-    .empty { text-align: center; color: #999; padding: 2rem; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+    /* ── Header ── */
+    header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; display: flex; align-items: center; gap: .75rem; }
+    .logo { width: 34px; height: 34px; background: #6c63ff; border-radius: 9px; display: grid; place-items: center; font-size: 1.1rem; flex-shrink: 0; }
+    header h1 { font-size: 1.1rem; font-weight: 600; }
+    .header-sub { font-size: .78rem; color: rgba(255,255,255,.4); margin-left: auto; }
+
+    /* ── Layout ── */
+    main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* ── Section card ── */
+    .section { background: #fff; border-radius: 14px; box-shadow: 0 1px 5px rgba(0,0,0,.07); overflow: hidden; }
+    .section-head {
+      padding: 1rem 1.5rem; border-bottom: 1px solid #f2f2f6;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .section-head h2 { font-size: .95rem; font-weight: 700; }
+    .section-head .count { background: #ede9ff; color: #6c63ff; font-size: .72rem; font-weight: 700; padding: .15rem .55rem; border-radius: 20px; }
+    .section-head .spacer { flex: 1; }
+
+    /* ── Group accordion ── */
+    .group-item { border-bottom: 1px solid #f2f2f6; }
+    .group-item:last-child { border-bottom: none; }
+    .group-header {
+      padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+      cursor: pointer; transition: background .12s; user-select: none;
+    }
+    .group-header:hover { background: #faf9ff; }
+    .group-header.open { background: #f5f3ff; }
+    .group-chevron { font-size: .75rem; color: #aaa; transition: transform .2s; flex-shrink: 0; }
+    .group-chevron.open { transform: rotate(90deg); }
+    .group-title { flex: 1; min-width: 0; }
+    .group-title strong { font-size: .92rem; display: block; margin-bottom: .2rem; }
+    .group-title .gmeta { font-size: .78rem; color: #999; display: flex; gap: .75rem; flex-wrap: wrap; }
+
+    /* ── Chips ── */
+    .plan-chips { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .chip {
+      display: inline-flex; align-items: center; gap: .3rem;
+      background: #f0eeff; color: #6c63ff; border-radius: 6px;
+      padding: .22rem .6rem; font-size: .73rem; font-weight: 600;
+    }
+    .chip .chip-id { color: #bbb; font-weight: 400; font-size: .68rem; font-family: ui-monospace, monospace; }
+    .chip.chip-grey { background: #f4f4f4; color: #999; }
+    .chip.chip-sm { font-size: .7rem; padding: .18rem .5rem; }
+
+    /* ── Group body ── */
+    .group-body { border-top: 1px solid #ede9ff; background: #faf9ff; }
+
+    /* ── IDs reference bar ── */
+    .ids-bar {
+      background: #1a1a2e; padding: .65rem 1.5rem;
+      display: flex; flex-direction: column; gap: .3rem;
+    }
+    .id-row { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+    .id-label { font-size: .67rem; font-weight: 700; color: #9b8ed6; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; min-width: 100px; }
+    .id-plan-name { font-weight: 400; color: #6c63ff; text-transform: none; letter-spacing: 0; }
+    .id-val { font-family: ui-monospace, monospace; font-size: .72rem; color: #c0bde0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ids-bar .copy-btn { color: #9b8ed6; border-color: #3a3a5c; flex-shrink: 0; }
+
+    /* ── Sub-sections inside expanded body ── */
+    .sub-section { padding: 1.25rem 1.5rem; border-bottom: 1px solid #ede9ff; }
+    .sub-section:last-child { border-bottom: none; }
+    .sub-label {
+      font-size: .68rem; font-weight: 800; color: #9b8ed6; text-transform: uppercase;
+      letter-spacing: .07em; margin-bottom: .9rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .sub-label .sub-count { background: #ede9ff; color: #6c63ff; padding: .1rem .45rem; border-radius: 12px; font-size: .66rem; }
+    .sub-label .spacer { flex: 1; }
+
+    /* ── Plan cards ── */
+    .plan-list { display: flex; flex-direction: column; gap: .5rem; }
+    .plan-card {
+      display: flex; align-items: center; gap: .75rem;
+      background: #fff; border: 1.5px solid #ede9ff; border-radius: 9px; padding: .65rem 1rem;
+    }
+    .plan-card .plan-icon { font-size: 1rem; flex-shrink: 0; }
+    .plan-card .plan-info { flex: 1; min-width: 0; }
+    .plan-card .plan-name { font-size: .875rem; font-weight: 600; }
+    .plan-card .plan-gid { font-size: .7rem; color: #c0bde0; font-family: ui-monospace, monospace; margin-top: .15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Inline add-plan form ── */
+    .add-plan-form {
+      background: #fff; border: 1.5px dashed #c4b9f5; border-radius: 9px;
+      padding: 1rem; margin-top: .75rem;
+    }
+    .add-plan-form .form-title { font-size: .78rem; font-weight: 700; color: #6c63ff; margin-bottom: .75rem; }
+    .plan-grid { display: grid; grid-template-columns: 1fr 100px 110px; gap: .6rem; align-items: end; }
+
+    /* ── Products ── */
+    .product-list { display: flex; flex-direction: column; gap: .4rem; }
+    .product-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .6rem .9rem; border-radius: 9px;
+      background: #fff; border: 1.5px solid #f0f0f0;
+      transition: opacity .2s;
+    }
+    .product-row.removing { opacity: .4; pointer-events: none; }
+    .product-info { flex: 1; min-width: 0; }
+    .product-title { font-size: .875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .product-gid { font-size: .69rem; color: #c0bde0; font-family: ui-monospace, monospace; margin-top: .1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .status-badge { font-size: .67rem; font-weight: 700; padding: .15rem .45rem; border-radius: 5px; white-space: nowrap; flex-shrink: 0; }
+    .status-ACTIVE   { background: #e6faf0; color: #1d9e6a; }
+    .status-DRAFT    { background: #fff8e6; color: #c07c00; }
+    .status-ARCHIVED { background: #f0f0f0; color: #888; }
+
+    .empty-state { text-align: center; color: #c0bde0; font-size: .83rem; padding: 1.25rem; border: 1.5px dashed #ede9ff; border-radius: 9px; }
+    .empty-state .empty-icon { font-size: 1.5rem; display: block; margin-bottom: .4rem; }
+
+    /* ── Checkout panel ── */
+    .checkout-panel {
+      background: #f5f3ff; border: 1.5px solid #c4b9f5; border-radius: 0 0 9px 9px;
+      border-top: none; padding: .75rem 1rem; margin-top: -2px;
+    }
+    .checkout-panel-label { font-size: .67rem; color: #9b8ed6; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem; }
+    .checkout-url-row { display: flex; align-items: center; gap: .6rem; padding: .35rem 0; border-top: 1px solid #e8e4ff; }
+    .checkout-url-row:first-of-type { border-top: none; }
+    .checkout-plan-name { font-size: .78rem; font-weight: 600; color: #6c63ff; white-space: nowrap; min-width: 140px; }
+    .checkout-url-val { font-family: ui-monospace, monospace; font-size: .69rem; color: #555; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .checkout-url-loading { font-size: .75rem; color: #aaa; font-style: italic; flex: 1; }
+
+    /* ── Product search combobox ── */
+    .link-product-row { display: flex; gap: .5rem; align-items: flex-start; margin-top: .85rem; }
+    .link-product-row .btn { flex-shrink: 0; align-self: flex-start; }
+    .product-search-wrap { flex: 1; }
+    .product-search-input { width: 100%; }
+    .product-search-input.has-selection { border-color: #6c63ff; background: #faf9ff; }
+    /* Dropdown is teleported to body — position:fixed set inline via JS */
+    .product-dropdown {
+      background: #fff; border: 1.5px solid #c4b9f5; border-radius: 8px;
+      box-shadow: 0 6px 24px rgba(108,99,255,.18); max-height: 220px; overflow-y: auto;
+    }
+    .product-option {
+      padding: .55rem .85rem; cursor: pointer; border-bottom: 1px solid #f5f3ff;
+      transition: background .1s;
+    }
+    .product-option:last-child { border-bottom: none; }
+    .product-option:hover { background: #f5f3ff; }
+    .product-option-title { font-size: .875rem; font-weight: 500; color: #1a1a2e; }
+    .product-option-meta { font-size: .7rem; color: #9b8ed6; margin-top: .1rem; font-family: ui-monospace, monospace; }
+    .product-option-empty { padding: .75rem .85rem; font-size: .82rem; color: #bbb; text-align: center; }
+
+    /* ── Loading / error ── */
+    .inline-loading { display: flex; align-items: center; gap: .5rem; color: #aaa; font-size: .82rem; padding: .75rem 0; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #e8e8e8; border-top-color: #6c63ff; border-radius: 50%; animation: spin .65s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .inline-error { font-size: .8rem; color: #c0392b; background: #fff4f4; border: 1px solid #f8c9c9; border-radius: 6px; padding: .5rem .75rem; margin-top: .5rem; }
+
+    .page-loading { display: flex; align-items: center; justify-content: center; gap: .75rem; color: #888; padding: 2.5rem; font-size: .9rem; }
+    .page-loading .spinner { width: 22px; height: 22px; border-width: 3px; }
+    .page-empty { text-align: center; color: #bbb; padding: 2.5rem; font-size: .9rem; }
+
+    /* ── Create form ── */
+    .create-section { padding: 1.5rem; }
+    .field { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .75rem; }
+    label { font-size: .71rem; font-weight: 700; color: #8a84b8; letter-spacing: .04em; text-transform: uppercase; }
+    input[type="text"], input[type="number"], select {
+      padding: .52rem .8rem; border: 1.5px solid #e2e5ed; border-radius: 7px;
+      font-size: .9rem; color: #1a1a2e; background: #fff; width: 100%;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus { outline: none; border-color: #6c63ff; box-shadow: 0 0 0 3px rgba(108,99,255,.12); }
+
+    /* ── Selling plans builder ── */
+    .plans-builder { margin-bottom: .75rem; }
+    .plans-builder-header { display: flex; align-items: center; margin-bottom: .5rem; }
+    .plans-builder-header label { margin: 0; flex: 1; }
+    .plan-row-grid { display: grid; grid-template-columns: 1fr 100px 110px 30px; gap: .5rem; align-items: end; margin-bottom: .4rem; }
+    .plan-row-grid .field { margin: 0; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+      padding: .52rem 1rem; border-radius: 7px; font-size: .82rem; font-weight: 600;
+      cursor: pointer; border: none; white-space: nowrap; transition: background .12s, opacity .12s;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary  { background: #6c63ff; color: #fff; }
+    .btn-primary:not(:disabled):hover  { background: #574fd6; }
+    .btn-danger   { background: #ffeaea; color: #c0392b; }
+    .btn-danger:not(:disabled):hover   { background: #fad6d6; }
+    .btn-outline  { background: transparent; border: 1.5px solid #e2e5ed; color: #555; }
+    .btn-outline:not(:disabled):hover  { border-color: #6c63ff; color: #6c63ff; }
+    .btn-ghost    { background: transparent; border: none; color: #6c63ff; font-size: .82rem; font-weight: 600; cursor: pointer; padding: 0; }
+    .btn-ghost:hover { text-decoration: underline; }
+    .btn-sm  { padding: .38rem .8rem; font-size: .78rem; }
+    .btn-xs  { padding: .22rem .55rem; font-size: .72rem; }
+    .btn-icon { padding: .38rem .5rem; font-size: .85rem; line-height: 1; }
+
+    .actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1.25rem; }
+
+    /* ── Result ── */
+    .result { border-radius: 8px; padding: .75rem 1rem; font-size: .82rem; margin-top: 1rem; }
+    .result.ok  { background: #f0fdf7; border: 1.5px solid #a7e8ce; color: #1d9e6a; }
+    .result.err { background: #fff4f4; border: 1.5px solid #f8c9c9; color: #c0392b; }
+    .result-row { display: flex; gap: .5rem; align-items: baseline; margin-top: .3rem; }
+    .rk { font-weight: 700; font-size: .72rem; min-width: 110px; }
+    .rv { font-family: ui-monospace, monospace; font-size: .78rem; word-break: break-all; flex: 1; }
+    .copy-btn { background: transparent; border: 1px solid currentColor; opacity: .55; border-radius: 4px; font-size: .68rem; padding: .1rem .38rem; cursor: pointer; flex-shrink: 0; }
+    .copy-btn:hover { opacity: 1; }
+
+    /* ── Flash ── */
+    .flash { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1a2e; color: #fff; padding: .5rem 1rem; border-radius: 8px; font-size: .82rem; box-shadow: 0 4px 16px rgba(0,0,0,.2); animation: fadeup .15s ease; z-index: 999; }
+    @keyframes fadeup { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:none } }
+
+    /* ── Divider ── */
+    .create-divider { border-top: 2px dashed #ede9ff; }
+
+    /* ── Subscription Contracts ── */
+    .contract-row { border-bottom: 1px solid #f2f2f6; padding: 1rem 1.5rem; }
+    .contract-row:last-child { border-bottom: none; }
+    .contract-header { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .6rem; }
+    .contract-customer { flex: 1; min-width: 0; }
+    .contract-customer strong { font-size: .9rem; display: block; }
+    .contract-email { font-size: .75rem; color: #999; }
+    .contract-meta { font-size: .78rem; color: #888; }
+    .contract-status-ACTIVE    { background: #e6faf0; color: #1d9e6a; }
+    .contract-status-PAUSED    { background: #fff8e6; color: #c07c00; }
+    .contract-status-CANCELLED { background: #ffeaea; color: #c0392b; }
+    .contract-status-FAILED    { background: #ffeaea; color: #c0392b; }
+    .contract-status-EXPIRED   { background: #f0f0f0; color: #888; }
+    .contract-lines { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .5rem; }
+    .contract-line { display: flex; align-items: center; gap: .6rem; font-size: .82rem; background: #faf9ff; border: 1px solid #ede9ff; border-radius: 7px; padding: .4rem .75rem; }
+    .contract-line-title { font-weight: 500; flex: 1; }
+    .contract-line-plan { font-size: .72rem; color: #9b8ed6; background: #f0eeff; padding: .1rem .4rem; border-radius: 4px; }
+    .contract-line-price { font-size: .78rem; color: #555; font-weight: 600; }
+    .contract-line-qty { font-size: .72rem; color: #aaa; }
+    .contract-orders { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; font-size: .75rem; }
+    .contract-orders-label { color: #aaa; font-weight: 700; text-transform: uppercase; font-size: .67rem; letter-spacing: .04em; }
+    .contract-order-ref { background: #f4f4f4; border-radius: 5px; padding: .15rem .5rem; color: #555; }
   </style>
 </head>
 <body>
 <div id="app">
+
   <header>
-    <h1>Membership Portal</h1>
-    <div class="user-chip" v-if="member">
-      <span>{{ member.name || member.email }}</span>
-      <button @click="logout">Log out</button>
-    </div>
+    <div class="logo">🛒</div>
+    <h1>Shopify Subscription Admin</h1>
+    <span class="header-sub">Selling Plan Management</span>
   </header>
 
   <main>
 
-    <!-- Auth -->
-    <template v-if="!member">
-      <div class="auth-card">
-        <h2>{{ authMode === 'register' ? 'Create account' : 'Sign in' }}</h2>
-        <div class="field" v-if="authMode === 'register'">
-          <label>Name</label>
-          <input v-model="authForm.name" placeholder="Your name"/>
-        </div>
-        <div class="field">
-          <label>Email</label>
-          <input v-model="authForm.email" type="email" placeholder="you@example.com" @keyup.enter="authSubmit"/>
-        </div>
-        <div class="error" v-if="authError">{{ authError }}</div>
-        <button class="btn btn-primary" @click="authSubmit">
-          {{ authMode === 'register' ? 'Register' : 'Sign in' }}
-        </button>
-        <button class="btn btn-outline" @click="toggleAuth">
-          {{ authMode === 'register' ? 'Already registered? Sign in' : 'New here? Register' }}
+    <!-- ══ Selling Plan Groups ══ -->
+    <div class="section">
+      <div class="section-head">
+        <h2>Selling Plan Groups</h2>
+        <span class="count" v-if="!loadingGroups">{{ groups.length }}</span>
+        <div class="spacer"></div>
+        <button class="btn btn-outline btn-sm" @click="loadGroups" :disabled="loadingGroups">↺ Refresh</button>
+        <button class="btn btn-primary btn-sm" @click="showCreate = !showCreate">
+          {{ showCreate ? '✕ Cancel' : '+ New Group' }}
         </button>
       </div>
-    </template>
 
-    <!-- Logged in -->
-    <template v-else>
-      <div class="banner banner-success" v-if="checkoutSuccess">
-        Payment complete — your membership is being activated.
-      </div>
-      <div class="banner banner-warn" v-if="checkoutCancelled">
-        Checkout cancelled. You can try again any time.
+      <!-- Loading -->
+      <div class="page-loading" v-if="loadingGroups">
+        <div class="spinner"></div> Fetching from Shopify…
       </div>
 
-      <div class="tabs">
-        <button :class="{ active: view === 'browse' }" @click="view='browse'">Browse Plans</button>
-        <button :class="{ active: view === 'memberships' }" @click="view='memberships'; loadMemberships()">My Memberships</button>
+      <!-- Error -->
+      <div style="padding:1.25rem 1.5rem;" v-else-if="groupsError">
+        <div class="inline-error">{{ groupsError }}</div>
       </div>
 
-      <!-- Browse -->
-      <template v-if="view === 'browse'">
-        <div class="empty" v-if="subscriptions.length === 0">No subscription plans available yet.</div>
-        <div class="sub-card" v-for="s in subscriptions" :key="s.id">
-          <div class="sub-header">
-            <h3>{{ s.name }}</h3>
-            <p v-if="s.description">{{ s.description }}</p>
-          </div>
-          <div class="plan-options">
-            <div class="plan-option"
-                 v-for="p in s.plans" :key="p.shopifySellingPlanId"
-                 :class="{ selected: selected[s.id] === p.shopifySellingPlanId }"
-                 @click="selected[s.id] = p.shopifySellingPlanId">
-              <div class="interval">{{ labelFor(p.interval, p.intervalCount) }}</div>
-              <div class="price">{{ p.currency }} {{ p.price }}</div>
+      <!-- Empty -->
+      <div class="page-empty" v-else-if="!showCreate && groups.length === 0">
+        No selling plan groups yet. Create the first one below.
+      </div>
+
+      <!-- Accordion list -->
+      <template v-if="!loadingGroups && !groupsError">
+        <div class="group-item" v-for="g in groups" :key="g.id">
+
+          <!-- Header row -->
+          <div :class="['group-header', gs(g.id).open ? 'open' : '']" @click="toggle(g)">
+            <span :class="['group-chevron', gs(g.id).open ? 'open' : '']">▶</span>
+
+            <div class="group-title">
+              <strong>{{ g.name }}</strong>
+              <div class="gmeta">
+                <span>{{ g.merchantCode }}</span>
+                <span>{{ g.productsCount }} product{{ g.productsCount !== 1 ? 's' : '' }}</span>
+              </div>
+            </div>
+
+            <div class="plan-chips">
+              <span class="chip chip-sm" v-for="p in g.sellingPlans" :key="p.id">
+                {{ planLabel(p) }}
+                <span class="chip-id">{{ shortId(p.id) }}</span>
+              </span>
+              <span class="chip chip-grey chip-sm" v-if="g.sellingPlans.length === 0">No plans</span>
             </div>
           </div>
-          <div class="sub-footer">
-            <button class="btn btn-primary btn-sm"
-                    :disabled="!selected[s.id] || subscribing === s.id"
-                    @click="subscribe(s)">
-              {{ subscribing === s.id ? 'Loading…' : 'Subscribe' }}
+
+          <!-- Expanded body -->
+          <div class="group-body" v-if="gs(g.id).open">
+
+            <!-- ── IDs reference bar ── -->
+            <div class="ids-bar">
+              <div class="id-row">
+                <span class="id-label">Group ID</span>
+                <span class="id-val">{{ g.id }}</span>
+                <button class="copy-btn" @click.stop="copy(g.id)">copy</button>
+              </div>
+              <div class="id-row" v-for="p in g.sellingPlans" :key="'id-'+p.id">
+                <span class="id-label">Plan ID <span class="id-plan-name">{{ planLabel(p) }}</span></span>
+                <span class="id-val">{{ p.id }}</span>
+                <button class="copy-btn" @click.stop="copy(p.id)">copy</button>
+              </div>
+            </div>
+
+            <!-- ── Selling Plans sub-section ── -->
+            <div class="sub-section">
+              <div class="sub-label">
+                Selling Plans
+                <span class="sub-count">{{ g.sellingPlans.length }}</span>
+                <div class="spacer"></div>
+                <button class="btn btn-outline btn-xs" @click.stop="toggleAddPlan(g.id)">
+                  {{ gs(g.id).showAddPlan ? '✕ Cancel' : '+ Add Plan' }}
+                </button>
+              </div>
+
+              <!-- Existing plans -->
+              <div class="plan-list" v-if="g.sellingPlans.length > 0">
+                <div class="plan-card" v-for="p in g.sellingPlans" :key="p.id">
+                  <span class="plan-icon">🔄</span>
+                  <div class="plan-info">
+                    <div class="plan-name">{{ planLabel(p) }}</div>
+                    <div class="plan-gid">{{ shortId(p.id) }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="empty-state" v-else style="padding:.75rem;">
+                No selling plans attached to this group yet.
+              </div>
+
+              <!-- Add plan inline form -->
+              <div class="add-plan-form" v-if="gs(g.id).showAddPlan">
+                <div class="form-title">New Selling Plan</div>
+                <div v-for="(plan, idx) in gs(g.id).newPlans" :key="idx"
+                     :class="['plan-grid', idx > 0 ? 'mt-4' : '']" style="margin-bottom:.5rem;">
+                  <div class="field" style="margin:0;">
+                    <label>Interval</label>
+                    <select v-model="plan.interval">
+                      <option value="DAY">Daily</option>
+                      <option value="WEEK">Weekly</option>
+                      <option value="MONTH">Monthly</option>
+                      <option value="YEAR">Yearly</option>
+                    </select>
+                  </div>
+                  <div class="field" style="margin:0;">
+                    <label>Every</label>
+                    <input type="number" v-model.number="plan.interval_count" min="1"/>
+                  </div>
+                  <div class="field" style="margin:0;">
+                    <label>Discount %</label>
+                    <input type="number" v-model.number="plan.discount_percentage" min="0" max="100" step="0.5"/>
+                  </div>
+                  <div style="display:flex; align-items:flex-end; padding-bottom:.05rem;">
+                    <button class="btn btn-danger btn-icon" :disabled="gs(g.id).newPlans.length <= 1" @click.stop="removeNewPlanRow(g.id, idx)" title="Remove">✕</button>
+                  </div>
+                </div>
+                <div style="display:flex; gap:.5rem; align-items:center; margin-top:.6rem;">
+                  <button class="btn btn-ghost btn-sm" @click.stop="addNewPlanRow(g.id)" style="padding:0; font-size:.78rem;">+ another plan</button>
+                  <div style="flex:1;"></div>
+                  <button class="btn btn-outline btn-sm" @click.stop="toggleAddPlan(g.id)">Cancel</button>
+                  <button class="btn btn-primary btn-sm" :disabled="gs(g.id).savingPlan" @click.stop="saveNewPlans(g)">
+                    {{ gs(g.id).savingPlan ? 'Saving…' : 'Save Plan(s)' }}
+                  </button>
+                </div>
+                <div class="inline-error" v-if="gs(g.id).planError">{{ gs(g.id).planError }}</div>
+              </div>
+            </div>
+
+            <!-- ── Products sub-section ── -->
+            <div class="sub-section">
+              <div class="sub-label">
+                Products
+                <span class="sub-count">{{ gs(g.id).products.length }}</span>
+              </div>
+
+              <!-- Loading products -->
+              <div class="inline-loading" v-if="gs(g.id).loadingProducts">
+                <div class="spinner"></div> Loading products…
+              </div>
+
+              <div class="inline-error" v-else-if="gs(g.id).productsError">{{ gs(g.id).productsError }}</div>
+
+              <template v-else>
+                <!-- Product list -->
+                <div class="product-list" v-if="gs(g.id).products.length > 0">
+                  <div v-for="p in gs(g.id).products" :key="p.id">
+                    <div :class="['product-row', gs(g.id).removing[p.id] ? 'removing' : '']">
+                      <div class="product-info">
+                        <div class="product-title">{{ p.title || 'Untitled Product' }}</div>
+                        <div class="product-gid">{{ p.id }}<span v-if="p.variant_id"> · variant: {{ shortId(p.variant_id) }}</span></div>
+                      </div>
+                      <span v-if="p.status" :class="['status-badge', 'status-' + p.status]">{{ p.status }}</span>
+                      <button class="btn btn-outline btn-xs" :disabled="!p.variant_id || g.sellingPlans.length === 0"
+                              @click.stop="toggleCheckout(g.id, p.id)" title="Test checkout URLs">
+                        🔗 Test
+                      </button>
+                      <button class="btn btn-danger btn-xs" :disabled="!!gs(g.id).removing[p.id]" @click.stop="removeProduct(g.id, p.id)">
+                        {{ gs(g.id).removing[p.id] ? '…' : '✕' }}
+                      </button>
+                    </div>
+
+                    <!-- Checkout URLs panel -->
+                    <div class="checkout-panel" v-if="gs(g.id).checkoutOpen && gs(g.id).checkoutOpen[p.id]">
+                      <div class="checkout-panel-label">Test checkout URLs — opens Shopify checkout in test mode</div>
+                      <div class="checkout-url-row" v-for="plan in g.sellingPlans" :key="plan.id">
+                        <span class="checkout-plan-name">{{ planLabel(plan) }}</span>
+                        <span class="checkout-url-val" v-if="gs(g.id).checkoutUrls && gs(g.id).checkoutUrls[p.id + plan.id]">
+                          {{ gs(g.id).checkoutUrls[p.id + plan.id] }}
+                        </span>
+                        <span class="checkout-url-loading" v-else-if="gs(g.id).checkoutLoading && gs(g.id).checkoutLoading[p.id + plan.id]">generating…</span>
+                        <div style="display:flex; gap:.4rem; margin-left:auto; flex-shrink:0;">
+                          <button class="copy-btn" style="color:#6c63ff; border-color:#c4b9f5;"
+                                  v-if="gs(g.id).checkoutUrls && gs(g.id).checkoutUrls[p.id + plan.id]"
+                                  @click.stop="copy(gs(g.id).checkoutUrls[p.id + plan.id])">copy</button>
+                          <a class="btn btn-primary btn-xs"
+                             v-if="gs(g.id).checkoutUrls && gs(g.id).checkoutUrls[p.id + plan.id]"
+                             :href="gs(g.id).checkoutUrls[p.id + plan.id]" target="_blank" rel="noopener">
+                            Open ↗
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="empty-state" v-else>
+                  <span class="empty-icon">📦</span>
+                  No products linked yet.
+                </div>
+
+                <!-- Link product combobox -->
+                <div class="link-product-row">
+                  <div class="product-search-wrap">
+                    <input
+                      type="text"
+                      :class="['product-search-input', gs(g.id).selectedPid ? 'has-selection' : '']"
+                      v-model="gs(g.id).searchText"
+                      :placeholder="availableProducts(g.id).length === 0 ? 'All products already linked' : 'Search products to link…'"
+                      :disabled="gs(g.id).adding || availableProducts(g.id).length === 0"
+                      @focus="openSearch(g.id, $event)"
+                      @input="gs(g.id).dropdownOpen = true; gs(g.id).selectedPid = ''"
+                      @blur="gs(g.id).dropdownOpen = false"
+                      @keydown.escape="gs(g.id).dropdownOpen = false"
+                      @keydown.enter.prevent="confirmTopProduct(g.id)"
+                    />
+                    <Teleport to="body">
+                      <div
+                        class="product-dropdown"
+                        v-if="gs(g.id).dropdownOpen"
+                        :style="gs(g.id).dropdownPos">
+                        <template v-if="filteredProducts(g.id).length > 0">
+                          <div
+                            class="product-option"
+                            v-for="p in filteredProducts(g.id)" :key="p.id"
+                            @mousedown.prevent="selectProduct(g.id, p)">
+                            <div class="product-option-title">{{ p.title }}</div>
+                            <div class="product-option-meta">
+                              {{ p.status }}
+                              <span v-if="p.variant_id"> · variant {{ shortId(p.variant_id) }}</span>
+                            </div>
+                          </div>
+                        </template>
+                        <div class="product-option-empty" v-else-if="gs(g.id).searchText">
+                          No products match "{{ gs(g.id).searchText }}"
+                        </div>
+                      </div>
+                    </Teleport>
+                  </div>
+                  <button
+                    class="btn btn-primary btn-sm"
+                    :disabled="gs(g.id).adding || !gs(g.id).selectedPid"
+                    @click.stop="addProduct(g.id)">
+                    {{ gs(g.id).adding ? '…' : 'Link' }}
+                  </button>
+                </div>
+
+                <div class="inline-error" v-if="gs(g.id).addError">{{ gs(g.id).addError }}</div>
+              </template>
+            </div>
+
+          </div><!-- /group-body -->
+        </div><!-- /group-item -->
+      </template>
+
+      <!-- ── New Group form ── -->
+      <div v-if="showCreate" class="create-divider">
+        <div class="create-section">
+          <div style="font-size:.78rem; font-weight:800; color:#6c63ff; text-transform:uppercase; letter-spacing:.07em; margin-bottom:1.1rem;">
+            New Selling Plan Group
+          </div>
+
+          <div class="field">
+            <label>Group Name</label>
+            <input type="text" v-model="form.name" placeholder="e.g. Coffee Subscription"/>
+          </div>
+
+          <!-- Selling Plans builder -->
+          <div class="plans-builder">
+            <div class="plans-builder-header">
+              <label>Selling Plans</label>
+              <button class="btn btn-outline btn-xs" style="margin-left:auto;" @click="addPlanRow">+ Add Plan</button>
+            </div>
+            <div class="plan-row-grid" v-for="(plan, idx) in form.selling_plans" :key="idx">
+              <div class="field" style="margin:0;">
+                <label>Interval</label>
+                <select v-model="plan.interval">
+                  <option value="DAY">Daily</option>
+                  <option value="WEEK">Weekly</option>
+                  <option value="MONTH">Monthly</option>
+                  <option value="YEAR">Yearly</option>
+                </select>
+              </div>
+              <div class="field" style="margin:0;">
+                <label>Every</label>
+                <input type="number" v-model.number="plan.interval_count" min="1"/>
+              </div>
+              <div class="field" style="margin:0;">
+                <label>Discount %</label>
+                <input type="number" v-model.number="plan.discount_percentage" min="0" max="100" step="0.5"/>
+              </div>
+              <div style="display:flex; align-items:flex-end; padding-bottom:.05rem;">
+                <button class="btn btn-danger btn-icon" :disabled="form.selling_plans.length <= 1" @click="removePlanRow(idx)">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="result err" v-if="createError">{{ createError }}</div>
+          <div class="result ok" v-if="createResult">
+            <div style="font-weight:700; margin-bottom:.4rem;">✓ Created — expand the new group above to link products</div>
+            <div class="result-row">
+              <span class="rk">Group ID</span>
+              <span class="rv">{{ createResult.selling_plan_group_id }}</span>
+              <button class="copy-btn" @click="copy(createResult.selling_plan_group_id)">copy</button>
+            </div>
+            <div class="result-row" v-for="(pid, i) in (createResult.selling_plan_ids || [])" :key="pid">
+              <span class="rk">Plan {{ (createResult.selling_plan_ids.length > 1 ? i + 1 + ' ' : '') }}ID</span>
+              <span class="rv">{{ pid }}</span>
+              <button class="copy-btn" @click="copy(pid)">copy</button>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-outline" @click="showCreate = false; createResult = null; createError = ''">Cancel</button>
+            <button class="btn btn-primary" :disabled="creating || !form.name.trim()" @click="createGroup">
+              {{ creating ? 'Creating…' : 'Create Group' }}
             </button>
           </div>
         </div>
-      </template>
+      </div>
 
-      <!-- My Memberships -->
-      <template v-if="view === 'memberships'">
-        <div class="empty" v-if="memberships.length === 0">You have no memberships yet.</div>
-        <div class="membership-card" v-for="m in memberships" :key="m.id">
-          <div>
-            <div style="font-weight:600;margin-bottom:.3rem;">{{ subName(m.subscriptionId) }}</div>
-            <div style="font-size:.8rem;color:#888">Since {{ fmt(m.startDate || m.createdAt) }}</div>
-            <div style="font-size:.8rem;color:#888" v-if="m.nextBillingDate">Next billing: {{ fmt(m.nextBillingDate) }}</div>
+    </div><!-- /section -->
+
+    <!-- ══ Subscription Contracts ══ -->
+    <div class="section">
+      <div class="section-head">
+        <h2>Subscription Contracts</h2>
+        <span class="count" v-if="!loadingContracts">{{ contracts.length }}</span>
+        <div class="spacer"></div>
+        <button class="btn btn-outline btn-sm" @click="loadContracts" :disabled="loadingContracts">↺ Refresh</button>
+      </div>
+
+      <div class="page-loading" v-if="loadingContracts">
+        <div class="spinner"></div> Fetching from Shopify…
+      </div>
+      <div style="padding:1.25rem 1.5rem;" v-else-if="contractsError">
+        <div class="inline-error">{{ contractsError }}</div>
+      </div>
+      <div class="page-empty" v-else-if="contracts.length === 0">
+        No subscription contracts found yet.
+      </div>
+
+      <template v-else>
+        <div class="contract-row" v-for="c in contracts" :key="c.id">
+          <div class="contract-header">
+            <div class="contract-customer">
+              <strong>{{ c.customer ? (c.customer.first_name + ' ' + c.customer.last_name).trim() || c.customer.email : 'Unknown customer' }}</strong>
+              <span class="contract-email" v-if="c.customer">{{ c.customer.email }}</span>
+            </div>
+            <span :class="['status-badge', 'contract-status-' + c.status]">{{ c.status }}</span>
+            <div class="contract-meta">
+              <span v-if="c.billing">{{ c.billing.interval_count > 1 ? 'Every ' + c.billing.interval_count + ' ' + c.billing.interval.toLowerCase() + 's' : c.billing.interval.charAt(0) + c.billing.interval.slice(1).toLowerCase() }}</span>
+              <span v-if="c.next_billing_date"> · Next {{ formatDate(c.next_billing_date) }}</span>
+            </div>
+            <button class="copy-btn" style="margin-left:auto;" @click="copy(c.id)" title="Copy contract ID">copy ID</button>
           </div>
-          <div style="display:flex;align-items:center;gap:.75rem;">
-            <span :class="'badge badge-' + m.status.toLowerCase()">{{ m.status }}</span>
-            <a v-if="m.status === 'PENDING' && m.checkoutUrl" :href="m.checkoutUrl"
-               class="btn btn-primary btn-sm" style="text-decoration:none;">Complete checkout</a>
-            <button v-if="m.status === 'ACTIVE'" class="btn-danger-sm" @click="cancel(m)">Cancel</button>
+
+          <!-- Lines -->
+          <div class="contract-lines">
+            <div class="contract-line" v-for="l in c.lines" :key="l.selling_plan_id">
+              <span class="contract-line-title">{{ l.title }}</span>
+              <span class="contract-line-plan" v-if="l.selling_plan_name">{{ l.selling_plan_name }}</span>
+              <span class="contract-line-price" v-if="l.price">{{ l.price }} {{ l.currency }}</span>
+              <span class="contract-line-qty">× {{ l.quantity }}</span>
+            </div>
+          </div>
+
+          <!-- Orders -->
+          <div class="contract-orders" v-if="c.orders && c.orders.length > 0">
+            <span class="contract-orders-label">Orders:</span>
+            <span class="contract-order-ref" v-for="o in c.orders" :key="o.id">
+              {{ o.name }} <span style="color:#bbb; font-size:.68rem;">{{ formatDate(o.created_at) }}</span>
+            </span>
           </div>
         </div>
       </template>
+    </div>
 
-    </template>
   </main>
+
+  <div class="flash" v-if="flashVisible">Copied!</div>
 </div>
 
 <script>
 const { createApp, reactive } = Vue;
+
 createApp({
   data() {
-    const params = new URLSearchParams(window.location.search);
     return {
-      member: JSON.parse(localStorage.getItem('member') || 'null'),
-      authMode: 'login',
-      authForm: { name: '', email: '' },
-      authError: '',
-      view: 'browse',
-      subscriptions: [],
-      memberships: [],
-      selected: {},   // { subscriptionId → shopifySellingPlanId }
-      subscribing: null,
-      checkoutSuccess: params.get('checkout') === 'success',
-      checkoutCancelled: params.get('checkout') === 'cancel',
+      /* Groups */
+      groups: [],
+      loadingGroups: false,
+      groupsError: '',
+
+      /* All Shopify products (loaded once) */
+      allProducts: [],
+
+      /* Per-group state */
+      groupState: {},
+
+      /* Subscription contracts */
+      contracts: [],
+      loadingContracts: false,
+      contractsError: '',
+
+      /* Create form */
+      showCreate: false,
+      form: { name: '', selling_plans: [{ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 }] },
+      creating: false,
+      createError: '',
+      createResult: null,
+
+      flashVisible: false,
+      _flashTimer: null,
     };
   },
-  async mounted() {
-    this.subscriptions = await get('/api/subscriptions').catch(() => []);
-    if (this.member && this.checkoutSuccess) {
-      this.view = 'memberships';
-      await this.loadMemberships();
-    }
-    if (this.checkoutSuccess || this.checkoutCancelled) {
-      history.replaceState({}, '', window.location.pathname);
-    }
+
+  mounted() {
+    this.loadGroups();
+    this.loadAllProducts();
+    this.loadContracts();
   },
+
   methods: {
-    toggleAuth() { this.authMode = this.authMode === 'register' ? 'login' : 'register'; this.authError = ''; },
-    async authSubmit() {
-      this.authError = '';
-      try {
-        const result = this.authMode === 'register'
-          ? await post('/api/auth/register', { email: this.authForm.email, name: this.authForm.name })
-          : await post('/api/auth/lookup', { email: this.authForm.email });
-        this.member = result;
-        localStorage.setItem('member', JSON.stringify(result));
-      } catch (e) { this.authError = e.message; }
-    },
-    logout() { this.member = null; localStorage.removeItem('member'); },
-    async subscribe(sub) {
-      const sellingPlanId = this.selected[sub.id];
-      if (!sellingPlanId) return;
-      this.subscribing = sub.id;
-      try {
-        const membership = await post('/api/members/' + this.member.id + '/memberships', {
-          subscriptionId: sub.id,
-          shopifySellingPlanId: sellingPlanId,
+    /* ── Per-group state helper ── */
+    gs(id) {
+      if (!this.groupState[id]) {
+        this.groupState[id] = reactive({
+          open: false,
+          /* products */
+          products: [],
+          loadingProducts: false,
+          productsError: '',
+          selectedPid: '',
+          searchText: '',
+          dropdownOpen: false,
+          dropdownPos: {},
+          adding: false,
+          addError: '',
+          removing: {},
+          /* add-plan form */
+          showAddPlan: false,
+          newPlans: [{ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 }],
+          savingPlan: false,
+          planError: '',
         });
-        if (membership.checkoutUrl) window.location.href = membership.checkoutUrl;
-        else alert('No checkout URL returned.');
-      } catch (e) { alert(e.message); }
-      finally { this.subscribing = null; }
+      }
+      return this.groupState[id];
     },
-    async loadMemberships() {
-      this.memberships = await get('/api/members/' + this.member.id + '/memberships').catch(() => []);
-    },
-    async cancel(m) {
-      if (!confirm('Cancel this membership?')) return;
+
+    /* ── Load all Shopify products once ── */
+    async loadAllProducts() {
       try {
-        await del('/api/members/' + this.member.id + '/memberships/' + m.id);
-        await this.loadMemberships();
-      } catch (e) { alert(e.message); }
+        const data = await get('/api/admin/products');
+        this.allProducts = data.products ?? [];
+      } catch (_) { /* non-critical */ }
     },
-    subName(id) {
-      return this.subscriptions.find(s => s.id === id)?.name || id?.slice(-8);
+
+    /* Products available to link (not already in this group) */
+    availableProducts(groupId) {
+      const linked = new Set((this.gs(groupId).products ?? []).map(p => p.id));
+      return this.allProducts.filter(p => !linked.has(p.id));
     },
-    labelFor(interval, count) {
+
+    /* ── Group list ── */
+    async loadGroups() {
+      this.loadingGroups = true;
+      this.groupsError = '';
+      try {
+        const data = await get('/api/admin/selling-groups');
+        this.groups = data.sellingPlanGroups ?? [];
+      } catch (e) {
+        this.groupsError = e.message;
+      } finally {
+        this.loadingGroups = false;
+      }
+    },
+
+    async silentRefreshGroups() {
+      try {
+        const data = await get('/api/admin/selling-groups');
+        this.groups = data.sellingPlanGroups ?? [];
+      } catch (_) {}
+    },
+
+    /* ── Accordion ── */
+    toggle(group) {
+      const s = this.gs(group.id);
+      s.open = !s.open;
+      if (s.open && !s.loadingProducts && !s.productsError && s.products.length === 0) {
+        this.fetchProducts(group.id);
+      }
+    },
+
+    /* ── Products ── */
+    async fetchProducts(groupId) {
+      const s = this.gs(groupId);
+      s.loadingProducts = true;
+      s.productsError = '';
+      try {
+        const data = await get('/api/admin/selling-groups/products?groupId=' + encodeURIComponent(groupId));
+        s.products = data.products ?? [];
+      } catch (e) {
+        s.productsError = e.message;
+      } finally {
+        s.loadingProducts = false;
+      }
+    },
+
+    async addProduct(groupId) {
+      const s = this.gs(groupId);
+      const pid = s.selectedPid;
+      if (!pid) return;
+      s.adding = true;
+      s.addError = '';
+      try {
+        await post('/api/admin/link-product-to-plan', {
+          selling_plan_group_id: groupId,
+          product_ids: [pid],
+        });
+        s.selectedPid = '';
+        s.searchText = '';
+        await this.fetchProducts(groupId);
+        this.silentRefreshGroups();
+      } catch (e) {
+        s.addError = e.message;
+      } finally {
+        s.adding = false;
+      }
+    },
+
+    openSearch(groupId, evt) {
+      const s = this.gs(groupId);
+      const r = evt.target.getBoundingClientRect();
+      s.dropdownPos = {
+        position: 'fixed',
+        top:   (r.bottom + 3) + 'px',
+        left:  r.left + 'px',
+        width: r.width + 'px',
+        zIndex: 9999,
+      };
+      s.dropdownOpen = true;
+    },
+
+    filteredProducts(groupId) {
+      const term = (this.gs(groupId).searchText || '').toLowerCase().trim();
+      const available = this.availableProducts(groupId);
+      if (!term) return available;
+      return available.filter(p =>
+        p.title.toLowerCase().includes(term) ||
+        (p.id && p.id.toLowerCase().includes(term)) ||
+        (p.variant_id && p.variant_id.includes(term))
+      );
+    },
+
+    selectProduct(groupId, product) {
+      const s = this.gs(groupId);
+      s.selectedPid = product.id;
+      s.searchText = product.title;
+      s.dropdownOpen = false;
+    },
+
+    confirmTopProduct(groupId) {
+      const top = this.filteredProducts(groupId)[0];
+      if (top) this.selectProduct(groupId, top);
+    },
+
+    async removeProduct(groupId, productId) {
+      const s = this.gs(groupId);
+      s.removing = { ...s.removing, [productId]: true };
+      try {
+        await post('/api/admin/remove-products-from-plan', {
+          selling_plan_group_id: groupId,
+          product_ids: [productId],
+        });
+        await this.fetchProducts(groupId);
+        this.silentRefreshGroups();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        const r = { ...s.removing };
+        delete r[productId];
+        s.removing = r;
+      }
+    },
+
+    /* ── Test checkout URLs ── */
+    async toggleCheckout(groupId, productId) {
+      const s = this.gs(groupId);
+      if (!s.checkoutOpen) s.checkoutOpen = {};
+      if (!s.checkoutUrls) s.checkoutUrls = {};
+      if (!s.checkoutLoading) s.checkoutLoading = {};
+
+      s.checkoutOpen[productId] = !s.checkoutOpen[productId];
+      if (!s.checkoutOpen[productId]) return;
+
+      const group = this.groups.find(g => g.id === groupId);
+      const product = s.products.find(p => p.id === productId);
+      if (!group || !product || !product.variant_id) return;
+
+      for (const plan of group.sellingPlans) {
+        const key = productId + plan.id;
+        if (s.checkoutUrls[key]) continue;
+        s.checkoutLoading[key] = true;
+        try {
+          const res = await post('/api/admin/checkout-url', {
+            variant_id: product.variant_id,
+            selling_plan_id: plan.id,
+          });
+          s.checkoutUrls[key] = res.checkout_url;
+        } catch (_) {
+          s.checkoutUrls[key] = '(error generating URL)';
+        } finally {
+          s.checkoutLoading[key] = false;
+        }
+      }
+    },
+
+    /* ── Add plan to existing group ── */
+    toggleAddPlan(groupId) {
+      const s = this.gs(groupId);
+      s.showAddPlan = !s.showAddPlan;
+      if (s.showAddPlan) {
+        s.newPlans = [{ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 }];
+        s.planError = '';
+      }
+    },
+
+    addNewPlanRow(groupId) {
+      this.gs(groupId).newPlans.push({ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 });
+    },
+
+    removeNewPlanRow(groupId, idx) {
+      const s = this.gs(groupId);
+      if (s.newPlans.length > 1) s.newPlans.splice(idx, 1);
+    },
+
+    async saveNewPlans(group) {
+      const s = this.gs(group.id);
+      s.savingPlan = true;
+      s.planError = '';
+      try {
+        await post('/api/admin/selling-groups/add-plan', {
+          selling_plan_group_id: group.id,
+          selling_plans: s.newPlans,
+        });
+        s.showAddPlan = false;
+        await this.silentRefreshGroups();
+      } catch (e) {
+        s.planError = e.message;
+      } finally {
+        s.savingPlan = false;
+      }
+    },
+
+    /* ── Create new group ── */
+    async createGroup() {
+      if (!this.form.name.trim()) return;
+      this.creating = true;
+      this.createError = '';
+      this.createResult = null;
+      try {
+        this.createResult = await post('/api/admin/create-selling-group', {
+          name: this.form.name.trim(),
+          selling_plans: this.form.selling_plans,
+        });
+        this.form = { name: '', selling_plans: [{ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 }] };
+        await this.loadGroups();
+        if (this.createResult.selling_plan_group_id) {
+          const newId = this.createResult.selling_plan_group_id;
+          this.$nextTick(() => {
+            const s = this.gs(newId);
+            s.open = true;
+            this.fetchProducts(newId);
+          });
+        }
+      } catch (e) {
+        this.createError = e.message;
+      } finally {
+        this.creating = false;
+      }
+    },
+
+    addPlanRow() {
+      this.form.selling_plans.push({ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 });
+    },
+    removePlanRow(idx) {
+      if (this.form.selling_plans.length > 1) this.form.selling_plans.splice(idx, 1);
+    },
+
+    /* ── Helpers ── */
+    planLabel(p) {
       const map = { DAY: 'Daily', WEEK: 'Weekly', MONTH: 'Monthly', YEAR: 'Yearly' };
-      return count > 1 ? `Every ${count} ${interval.toLowerCase()}s` : (map[interval] || interval);
+      const freq = p.intervalCount > 1
+        ? `Every ${p.intervalCount} ${(p.interval ?? '').toLowerCase()}s`
+        : (map[p.interval] ?? p.interval ?? 'Plan');
+      return p.discountPercentage > 0 ? `${freq} · ${p.discountPercentage}% off` : freq;
     },
-    fmt(ts) {
-      return ts ? new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+
+    /* ── Subscription contracts ── */
+    async loadContracts() {
+      this.loadingContracts = true;
+      this.contractsError = '';
+      try {
+        const data = await get('/api/admin/subscription-contracts');
+        this.contracts = data.contracts ?? [];
+      } catch (e) {
+        this.contractsError = e.message;
+      } finally {
+        this.loadingContracts = false;
+      }
+    },
+
+    formatDate(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    },
+
+    shortId(gid) { return gid ? '#' + gid.split('/').pop() : ''; },
+
+    copy(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        clearTimeout(this._flashTimer);
+        this.flashVisible = true;
+        this._flashTimer = setTimeout(() => { this.flashVisible = false; }, 1800);
+      });
     },
   },
 }).mount('#app');

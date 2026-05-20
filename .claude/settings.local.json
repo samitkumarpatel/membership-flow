@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:shopify.dev)",
+      "WebFetch(domain:spring.io)",
+      "Bash(./mvnw compile *)",
+      "Bash(./mvnw test *)",
+      "Bash(echo \"exit: $?\")"
+    ]
+  }
+}
