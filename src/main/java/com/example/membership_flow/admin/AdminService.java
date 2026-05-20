@@ -1,9 +1,7 @@
 package com.example.membership_flow.admin;
 
 import com.example.membership_flow.admin.dto.AddSellingPlanRequest;
-import com.example.membership_flow.admin.dto.CheckoutUrlRequest;
 import com.example.membership_flow.admin.dto.SubscriptionContractsResponse;
-import com.example.membership_flow.admin.dto.CheckoutUrlResponse;
 import com.example.membership_flow.admin.dto.CreateSellingGroupRequest;
 import com.example.membership_flow.admin.dto.CreateSellingGroupResponse;
 import com.example.membership_flow.admin.dto.GroupProductsResponse;
@@ -12,9 +10,13 @@ import com.example.membership_flow.admin.dto.LinkProductResponse;
 import com.example.membership_flow.admin.dto.ProductsResponse;
 import com.example.membership_flow.admin.dto.RemoveProductRequest;
 import com.example.membership_flow.admin.dto.RemoveSellingPlanRequest;
+import com.example.membership_flow.admin.dto.CancelContractRequest;
+import com.example.membership_flow.admin.dto.PauseContractRequest;
+import com.example.membership_flow.admin.dto.ActivateContractRequest;
+import com.example.membership_flow.admin.dto.UpdateSellingGroupRequest;
+import com.example.membership_flow.admin.dto.UpdateSellingPlanRequest;
 import com.example.membership_flow.admin.dto.SellingGroupsResponse;
 import com.example.membership_flow.shopify.ShopifyAdminClient;
-import com.example.membership_flow.shopify.ShopifyProperties;
 import com.example.membership_flow.shopify.graphql.GraphQLRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -203,8 +205,34 @@ public class AdminService {
             }
             """;
 
+    private static final String CANCEL_SUBSCRIPTION_CONTRACT = """
+            mutation subscriptionContractCancel($subscriptionContractId: ID!) {
+              subscriptionContractCancel(subscriptionContractId: $subscriptionContractId) {
+                contract { id status }
+                userErrors { field message }
+              }
+            }
+            """;
+
+    private static final String PAUSE_SUBSCRIPTION_CONTRACT = """
+            mutation subscriptionContractPause($subscriptionContractId: ID!) {
+              subscriptionContractPause(subscriptionContractId: $subscriptionContractId) {
+                contract { id status }
+                userErrors { field message }
+              }
+            }
+            """;
+
+    private static final String ACTIVATE_SUBSCRIPTION_CONTRACT = """
+            mutation subscriptionContractActivate($subscriptionContractId: ID!) {
+              subscriptionContractActivate(subscriptionContractId: $subscriptionContractId) {
+                contract { id status }
+                userErrors { field message }
+              }
+            }
+            """;
+
     private final ShopifyAdminClient shopifyAdminClient;
-    private final ShopifyProperties shopifyProperties;
 
     public SellingGroupsResponse listSellingGroups() {
         var result = shopifyAdminClient.listSellingPlanGroups(new GraphQLRequest(LIST_SELLING_PLAN_GROUPS, null));
@@ -439,6 +467,49 @@ public class AdminService {
         return new SubscriptionContractsResponse(contracts.size(), contracts);
     }
 
+    public LinkProductResponse updateSellingPlan(UpdateSellingPlanRequest request) {
+        var intervalLabel = request.interval().charAt(0) + request.interval().substring(1).toLowerCase();
+        var pricingPolicies = request.discountPercentage() > 0
+                ? List.of(Map.of("fixed", Map.of(
+                        "adjustmentType", "PERCENTAGE",
+                        "adjustmentValue", Map.of("percentage", request.discountPercentage()))))
+                : List.<Object>of();
+
+        var planInput = Map.of(
+                "id", request.sellingPlanId(),
+                "name", "%s (%d%% off)".formatted(intervalLabel, (int) request.discountPercentage()),
+                "options", intervalLabel,
+                "billingPolicy", Map.of("recurring", Map.of(
+                        "interval", request.interval(),
+                        "intervalCount", request.intervalCount()
+                )),
+                "deliveryPolicy", Map.of("recurring", Map.of(
+                        "interval", request.interval(),
+                        "intervalCount", request.intervalCount()
+                )),
+                "pricingPolicies", pricingPolicies
+        );
+
+        var variables = Map.of(
+                "id", request.sellingPlanGroupId(),
+                "input", Map.of("sellingPlansToUpdate", List.of(planInput))
+        );
+
+        var result = shopifyAdminClient.updateSellingPlanGroup(
+                new GraphQLRequest(UPDATE_SELLING_PLAN_GROUP, variables));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for sellingPlanGroupUpdate");
+        }
+
+        var payload = result.data().sellingPlanGroupUpdate();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success", "Updated selling plan: " + request.sellingPlanId());
+    }
+
     public LinkProductResponse removeSellingPlanFromGroup(RemoveSellingPlanRequest request) {
         var variables = Map.of(
                 "id", request.sellingPlanGroupId(),
@@ -461,6 +532,30 @@ public class AdminService {
                 "Removed %d selling plan(s)".formatted(request.sellingPlanIds().size()));
     }
 
+    public LinkProductResponse updateSellingGroup(UpdateSellingGroupRequest request) {
+        var variables = Map.of(
+                "id", request.groupId(),
+                "input", Map.of(
+                        "name", request.name(),
+                        "merchantCode", toSlug(request.name())
+                )
+        );
+
+        var result = shopifyAdminClient.updateSellingPlanGroup(
+                new GraphQLRequest(UPDATE_SELLING_PLAN_GROUP, variables));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for sellingPlanGroupUpdate");
+        }
+
+        var payload = result.data().sellingPlanGroupUpdate();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success", "Updated subscription: " + request.name());
+    }
+
     public LinkProductResponse deleteSellingGroup(String groupId) {
         var result = shopifyAdminClient.deleteSellingPlanGroup(
                 new GraphQLRequest(DELETE_SELLING_PLAN_GROUP, Map.of("id", groupId)));
@@ -477,16 +572,59 @@ public class AdminService {
         return new LinkProductResponse("success", "Deleted selling plan group: " + groupId);
     }
 
-    public CheckoutUrlResponse buildCheckoutUrl(CheckoutUrlRequest request) {
-        var variantNumericId = numericId(request.variantId());
-        var planNumericId = numericId(request.sellingPlanId());
-        var url = "https://%s/cart/add?id=%s&quantity=1&selling_plan=%s"
-                .formatted(shopifyProperties.storeDomain(), variantNumericId, planNumericId);
-        return new CheckoutUrlResponse(url, request.variantId(), request.sellingPlanId());
+
+    public LinkProductResponse cancelSubscriptionContract(CancelContractRequest request) {
+        var result = shopifyAdminClient.cancelSubscriptionContract(
+                new GraphQLRequest(CANCEL_SUBSCRIPTION_CONTRACT,
+                        Map.of("subscriptionContractId", request.contractId())));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for subscriptionContractCancel");
+        }
+
+        var payload = result.data().subscriptionContractCancel();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success",
+                "Contract cancelled: " + payload.contract().id());
     }
 
-    private static String numericId(String gid) {
-        return gid.substring(gid.lastIndexOf('/') + 1);
+    public LinkProductResponse pauseSubscriptionContract(PauseContractRequest request) {
+        var result = shopifyAdminClient.pauseSubscriptionContract(
+                new GraphQLRequest(PAUSE_SUBSCRIPTION_CONTRACT,
+                        Map.of("subscriptionContractId", request.contractId())));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for subscriptionContractPause");
+        }
+
+        var payload = result.data().subscriptionContractPause();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success",
+                "Contract paused: " + payload.contract().id());
+    }
+
+    public LinkProductResponse activateSubscriptionContract(ActivateContractRequest request) {
+        var result = shopifyAdminClient.activateSubscriptionContract(
+                new GraphQLRequest(ACTIVATE_SUBSCRIPTION_CONTRACT,
+                        Map.of("subscriptionContractId", request.contractId())));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for subscriptionContractActivate");
+        }
+
+        var payload = result.data().subscriptionContractActivate();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success",
+                "Contract activated: " + payload.contract().id());
     }
 
     private Map<String, Object> buildSellingPlanInput(CreateSellingGroupRequest.SellingPlanInput plan) {

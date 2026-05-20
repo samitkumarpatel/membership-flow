@@ -1,8 +1,9 @@
 package com.example.membership_flow.admin;
 
 import com.example.membership_flow.admin.dto.AddSellingPlanRequest;
-import com.example.membership_flow.admin.dto.CheckoutUrlRequest;
-import com.example.membership_flow.admin.dto.CheckoutUrlResponse;
+import com.example.membership_flow.admin.dto.ActivateContractRequest;
+import com.example.membership_flow.admin.dto.CancelContractRequest;
+import com.example.membership_flow.admin.dto.PauseContractRequest;
 import com.example.membership_flow.admin.dto.SubscriptionContractsResponse;
 import com.example.membership_flow.admin.dto.CreateSellingGroupRequest;
 import com.example.membership_flow.admin.dto.CreateSellingGroupResponse;
@@ -12,6 +13,8 @@ import com.example.membership_flow.admin.dto.LinkProductResponse;
 import com.example.membership_flow.admin.dto.ProductsResponse;
 import com.example.membership_flow.admin.dto.RemoveProductRequest;
 import com.example.membership_flow.admin.dto.RemoveSellingPlanRequest;
+import com.example.membership_flow.admin.dto.UpdateSellingGroupRequest;
+import com.example.membership_flow.admin.dto.UpdateSellingPlanRequest;
 import com.example.membership_flow.admin.dto.SellingGroupsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -72,18 +75,38 @@ public class AdminController {
         return adminService.removeSellingPlanFromGroup(request);
     }
 
+    @PostMapping("/selling-groups/update-plan")
+    public LinkProductResponse updateSellingPlan(@RequestBody UpdateSellingPlanRequest request) {
+        return adminService.updateSellingPlan(request);
+    }
+
+    @PostMapping("/selling-groups/update-name")
+    public LinkProductResponse updateSellingGroup(@RequestBody UpdateSellingGroupRequest request) {
+        return adminService.updateSellingGroup(request);
+    }
+
     @DeleteMapping("/selling-groups")
     public LinkProductResponse deleteSellingGroup(@RequestParam String groupId) {
         return adminService.deleteSellingGroup(groupId);
     }
 
-    @PostMapping("/checkout-url")
-    public CheckoutUrlResponse buildCheckoutUrl(@RequestBody CheckoutUrlRequest request) {
-        return adminService.buildCheckoutUrl(request);
-    }
-
     @GetMapping("/subscription-contracts")
     public SubscriptionContractsResponse listSubscriptionContracts() {
         return adminService.listSubscriptionContracts();
+    }
+
+    @PostMapping("/subscription-contracts/cancel")
+    public LinkProductResponse cancelSubscriptionContract(@RequestBody CancelContractRequest request) {
+        return adminService.cancelSubscriptionContract(request);
+    }
+
+    @PostMapping("/subscription-contracts/pause")
+    public LinkProductResponse pauseSubscriptionContract(@RequestBody PauseContractRequest request) {
+        return adminService.pauseSubscriptionContract(request);
+    }
+
+    @PostMapping("/subscription-contracts/activate")
+    public LinkProductResponse activateSubscriptionContract(@RequestBody ActivateContractRequest request) {
+        return adminService.activateSubscriptionContract(request);
     }
 }
