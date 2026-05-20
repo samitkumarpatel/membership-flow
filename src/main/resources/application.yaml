@@ -1,16 +1,6 @@
 spring:
   application:
     name: membership-flow
-    payment:
-      stripe:
-        enabled: false
-        # secret-key: sk_test_...
-        # webhook-secret: whsec_...
-      shopify:
-        enabled: true
-        access-token: shpat_...
-        shop-domain: helinhair-2.myshopify.com
-        webhook-secret: abc
   mongodb:
     database: membership_flow
 

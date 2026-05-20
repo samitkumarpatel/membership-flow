@@ -3,536 +3,300 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LuxeSalon — Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/config.js"></script>
+  <title>Membership Admin</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
+  <script src="/js/api.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f4f6f9; color: #1a1a2e; }
+    header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    nav { display: flex; gap: .5rem; margin-left: auto; }
+    nav button { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff;
+      padding: .4rem 1rem; border-radius: 6px; cursor: pointer; font-size: .875rem; }
+    nav button.active { background: #fff; color: #1a1a2e; }
+    main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.5rem; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat { background: #fff; border-radius: 10px; padding: 1.25rem; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .stat .num { font-size: 2rem; font-weight: 700; color: #6c63ff; }
+    .stat .label { font-size: .8rem; color: #666; margin-top: .25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: .75rem 1rem; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f8f9ff; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #666; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: .2rem .6rem; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+    .badge-active { background: #e6faf0; color: #1d9e6a; }
+    .badge-inactive { background: #f0f0f0; color: #888; }
+    .badge-pending { background: #fff8e6; color: #c07c00; }
+    .badge-cancelled { background: #ffeaea; color: #c0392b; }
+    .badge-suspended { background: #fdf0ff; color: #8e44ad; }
+    .btn { display: inline-block; padding: .45rem .9rem; border-radius: 6px; font-size: .85rem; cursor: pointer; border: none; font-weight: 500; }
+    .btn-primary { background: #6c63ff; color: #fff; }
+    .btn-primary:hover { background: #574fd6; }
+    .btn-danger { background: #ffeaea; color: #c0392b; }
+    .btn-sm { padding: .3rem .7rem; font-size: .8rem; }
+    .btn-outline { background: transparent; border: 1px solid #6c63ff; color: #6c63ff; }
+    .btn-outline:hover { background: #f0eeff; }
+    .row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+    .field { display: flex; flex-direction: column; gap: .25rem; }
+    .field label { font-size: .8rem; font-weight: 600; color: #555; }
+    .field input, .field select, .field textarea { padding: .5rem .75rem; border: 1px solid #ddd; border-radius: 6px; font-size: .9rem; }
+    .field input:focus, .field select:focus { outline: none; border-color: #6c63ff; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: #fff; border-radius: 12px; padding: 2rem; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 1.25rem; }
+    .modal .actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.25rem; }
+    .error { color: #c0392b; font-size: .85rem; margin-top: .5rem; }
+    .empty { text-align: center; color: #999; padding: 2rem; font-size: .95rem; }
+    select.filter { padding: .4rem .75rem; border: 1px solid #ddd; border-radius: 6px; font-size: .875rem; }
+    .plans-inline { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .plan-tag { background: #f0eeff; color: #6c63ff; border-radius: 5px; padding: .2rem .55rem; font-size: .78rem; font-weight: 600; }
+    .divider { border: none; border-top: 1px solid #eee; margin: 1rem 0; }
+    .plan-row { display: flex; gap: .75rem; align-items: center; padding: .5rem; background: #f8f9ff; border-radius: 8px; margin-bottom: .5rem; }
+    .plan-row .interval { font-weight: 600; width: 70px; font-size: .85rem; }
+  </style>
 </head>
-<body class="bg-gray-100 text-slate-800 min-h-screen">
-<div id="app" class="flex h-screen overflow-hidden"></div>
-<script>
-const { createApp, ref, reactive, computed, onMounted, watch } = Vue
+<body>
+<div id="app">
+  <header>
+    <h1>Membership Admin</h1>
+    <nav>
+      <button v-for="t in tabs" :key="t.id" :class="{ active: tab === t.id }" @click="tab = t.id; load()">{{ t.label }}</button>
+    </nav>
+  </header>
+  <main>
 
-// ── API ───────────────────────────────────────────────────────────────────────
-
-async function apiFetch(url, opts = {}) {
-  const res = await fetch((window.APP_CONFIG?.apiBase ?? '/api') + url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || `Error ${res.status}`)
-  }
-  return res.status === 204 ? null : res.json()
-}
-
-const api = {
-  plans: {
-    list:      ()          => apiFetch('/admin/plans'),
-    create:    b           => apiFetch('/admin/plans', { method: 'POST', body: b }),
-    update:    (id, b)     => apiFetch(`/admin/plans/${id}`, { method: 'PUT', body: b }),
-    setStatus: (id, s)     => apiFetch(`/admin/plans/${id}/status?status=${s}`, { method: 'PATCH' }),
-  },
-  members: {
-    list: () => apiFetch('/admin/members'),
-  },
-  memberships: {
-    list:   s  => apiFetch('/admin/memberships' + (s ? `?status=${s}` : '')),
-    cancel: id => apiFetch(`/admin/memberships/${id}/cancel`, { method: 'PATCH' }),
-  },
-}
-
-// ── Shared components ─────────────────────────────────────────────────────────
-
-const StatusBadge = {
-  props: ['status'],
-  computed: {
-    cls() {
-      return {
-        ACTIVE:    'bg-green-100 text-green-700',
-        INACTIVE:  'bg-stone-100 text-stone-500',
-        ARCHIVED:  'bg-stone-200 text-stone-400',
-        PENDING:   'bg-yellow-100 text-yellow-700',
-        CANCELLED: 'bg-red-100 text-red-600',
-        EXPIRED:   'bg-stone-100 text-stone-500',
-        FAILED:    'bg-red-100 text-red-600',
-      }[this.status] || 'bg-stone-100 text-stone-500'
-    }
-  },
-  template: `<span :class="cls" class="text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap">{{ status }}</span>`,
-}
-
-// ── DashboardView ─────────────────────────────────────────────────────────────
-
-const DashboardView = {
-  components: { StatusBadge },
-  setup() {
-    const stats = reactive({ plans: 0, members: 0, active: 0, pending: 0 })
-    const recentMemberships = ref([])
-    const loading = ref(true)
-
-    onMounted(async () => {
-      try {
-        const [plans, members, allMemberships] = await Promise.all([
-          api.plans.list(),
-          api.members.list(),
-          api.memberships.list(),
-        ])
-        stats.plans   = plans.filter(p => p.status === 'ACTIVE').length
-        stats.members = members.length
-        stats.active  = allMemberships.filter(m => m.status === 'ACTIVE').length
-        stats.pending = allMemberships.filter(m => m.status === 'PENDING').length
-        recentMemberships.value = allMemberships.slice(0, 5)
-      } catch (e) { console.error(e) }
-      finally { loading.value = false }
-    })
-
-    return { stats, recentMemberships, loading }
-  },
-  template: `
-    <div>
-      <h1 class="text-xl font-bold text-slate-800 mb-6">Dashboard</h1>
-      <div v-if="loading" class="text-slate-400">Loading…</div>
-      <template v-else>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Active Plans</p>
-            <p class="text-3xl font-bold text-slate-800">{{ stats.plans }}</p>
-          </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Members</p>
-            <p class="text-3xl font-bold text-slate-800">{{ stats.members }}</p>
-          </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Active Subs</p>
-            <p class="text-3xl font-bold text-green-600">{{ stats.active }}</p>
-          </div>
-          <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-            <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Pending</p>
-            <p class="text-3xl font-bold text-yellow-500">{{ stats.pending }}</p>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100">
-            <h2 class="font-semibold text-slate-700">Recent Memberships</h2>
-          </div>
-          <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
-              <tr>
-                <th class="px-5 py-3 text-left font-medium">Member ID</th>
-                <th class="px-5 py-3 text-left font-medium">Plan ID</th>
-                <th class="px-5 py-3 text-left font-medium">Gateway</th>
-                <th class="px-5 py-3 text-left font-medium">Status</th>
-                <th class="px-5 py-3 text-left font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr v-if="recentMemberships.length === 0">
-                <td colspan="5" class="px-5 py-8 text-center text-slate-400">No memberships yet.</td>
-              </tr>
-              <tr v-for="m in recentMemberships" :key="m.id" class="hover:bg-slate-50">
-                <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.memberId.slice(0,12) }}…</td>
-                <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.planId.slice(0,12) }}…</td>
-                <td class="px-5 py-3 text-slate-600">{{ m.gateway }}</td>
-                <td class="px-5 py-3"><StatusBadge :status="m.status"/></td>
-                <td class="px-5 py-3 text-slate-400">{{ new Date(m.createdAt).toLocaleDateString() }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-    </div>
-  `,
-}
-
-// ── PlansView (admin) ─────────────────────────────────────────────────────────
-
-const PlansView = {
-  components: { StatusBadge },
-  setup() {
-    const plans = ref([]), loading = ref(true), error = ref('')
-    const showModal = ref(false), saving = ref(false), modalError = ref('')
-    const editingId = ref(null)
-
-    const GATEWAYS = ['STRIPE', 'SHOPIFY']
-    const STATUSES = ['ACTIVE', 'INACTIVE']
-
-    const emptyForm = () => ({ name: '', description: '', price: '', currency: 'USD', intervalDays: 30, benefits: '', gateway: 'STRIPE' })
-    const form = reactive(emptyForm())
-
-    async function load() {
-      try { plans.value = await api.plans.list() }
-      catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    }
-
-    onMounted(load)
-
-    function openCreate() {
-      Object.assign(form, emptyForm())
-      editingId.value = null
-      modalError.value = ''
-      showModal.value = true
-    }
-
-    function openEdit(p) {
-      Object.assign(form, {
-        name: p.name, description: p.description, price: p.price,
-        currency: p.currency, intervalDays: p.intervalDays,
-        benefits: (p.benefits || []).join('\n'), gateway: p.gateway,
-      })
-      editingId.value = p.id
-      modalError.value = ''
-      showModal.value = true
-    }
-
-    async function save() {
-      if (!form.name || !form.price) { modalError.value = 'Name and price are required.'; return }
-      saving.value = true; modalError.value = ''
-      const body = {
-        name: form.name, description: form.description,
-        price: parseFloat(form.price), currency: form.currency,
-        intervalDays: parseInt(form.intervalDays),
-        benefits: form.benefits.split('\n').map(s => s.trim()).filter(Boolean),
-        gateway: form.gateway,
-      }
-      try {
-        if (editingId.value) await api.plans.update(editingId.value, body)
-        else await api.plans.create(body)
-        showModal.value = false
-        await load()
-      } catch (e) { modalError.value = e.message }
-      finally { saving.value = false }
-    }
-
-    async function toggleStatus(p) {
-      const next = p.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-      try {
-        await api.plans.setStatus(p.id, next)
-        await load()
-      } catch (e) { error.value = e.message }
-    }
-
-    return { plans, loading, error, showModal, saving, modalError, form, editingId, GATEWAYS, openCreate, openEdit, save, toggleStatus }
-  },
-  template: `
-    <div>
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-800">Membership Plans</h1>
-        <button @click="openCreate" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-          + New Plan
-        </button>
+    <!-- DASHBOARD -->
+    <template v-if="tab === 'dashboard'">
+      <div class="stat-grid">
+        <div class="stat"><div class="num">{{ stats.active ?? '—' }}</div><div class="label">Active</div></div>
+        <div class="stat"><div class="num">{{ stats.pending ?? '—' }}</div><div class="label">Pending</div></div>
+        <div class="stat"><div class="num">{{ stats.cancelled ?? '—' }}</div><div class="label">Cancelled</div></div>
+        <div class="stat"><div class="num">{{ stats.suspended ?? '—' }}</div><div class="label">Suspended</div></div>
+        <div class="stat"><div class="num">{{ stats.total ?? '—' }}</div><div class="label">Total</div></div>
       </div>
-      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
-      <div v-if="loading" class="text-slate-400">Loading…</div>
+    </template>
 
-      <div v-else class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
-            <tr>
-              <th class="px-5 py-3 text-left font-medium">Name</th>
-              <th class="px-5 py-3 text-left font-medium">Price</th>
-              <th class="px-5 py-3 text-left font-medium">Interval</th>
-              <th class="px-5 py-3 text-left font-medium">Gateway</th>
-              <th class="px-5 py-3 text-left font-medium">Status</th>
-              <th class="px-5 py-3 text-left font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-if="plans.length === 0">
-              <td colspan="6" class="px-5 py-10 text-center text-slate-400">No plans yet. Create one to get started.</td>
-            </tr>
-            <tr v-for="p in plans" :key="p.id" class="hover:bg-slate-50">
-              <td class="px-5 py-3">
-                <div class="font-medium text-slate-800">{{ p.name }}</div>
-                <div class="text-xs text-slate-400 truncate max-w-xs">{{ p.description }}</div>
+    <!-- SUBSCRIPTIONS -->
+    <template v-if="tab === 'subscriptions'">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem;">
+          <h2 style="font-size:1rem;">Subscriptions</h2>
+          <button class="btn btn-primary" @click="openCreate">+ New Subscription</button>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Plans</th><th>Product attached</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr v-if="subscriptionsError"><td colspan="4" class="empty" style="color:#c0392b">{{ subscriptionsError }}</td></tr>
+            <tr v-else-if="subscriptions.length === 0"><td colspan="4" class="empty">No subscriptions yet.</td></tr>
+            <tr v-for="s in subscriptions" :key="s.id">
+              <td>
+                <strong>{{ s.name }}</strong>
+                <div style="font-size:.8rem;color:#888">{{ s.description }}</div>
               </td>
-              <td class="px-5 py-3 font-semibold text-slate-700">{{ p.currency }} {{ Number(p.price).toFixed(2) }}</td>
-              <td class="px-5 py-3 text-slate-500">{{ p.intervalDays }}d</td>
-              <td class="px-5 py-3 text-slate-500">{{ p.gateway }}</td>
-              <td class="px-5 py-3"><StatusBadge :status="p.status"/></td>
-              <td class="px-5 py-3">
-                <div class="flex items-center gap-2">
-                  <button @click="openEdit(p)" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Edit</button>
-                  <button @click="toggleStatus(p)"
-                          :class="p.status === 'ACTIVE' ? 'text-red-400 hover:text-red-600' : 'text-green-600 hover:text-green-800'"
-                          class="text-xs font-medium">
-                    {{ p.status === 'ACTIVE' ? 'Deactivate' : 'Activate' }}
-                  </button>
+              <td>
+                <div class="plans-inline">
+                  <span class="plan-tag" v-for="p in s.plans" :key="p.shopifySellingPlanId">
+                    {{ p.interval }} · {{ p.currency }} {{ p.price }}
+                  </span>
                 </div>
               </td>
+              <td>
+                <span v-if="s.shopifyVariantId" style="color:#1d9e6a;font-size:.85rem;">✓ attached</span>
+                <span v-else style="color:#aaa;font-size:.85rem;">—</span>
+              </td>
+              <td><span :class="'badge badge-' + s.status.toLowerCase()">{{ s.status }}</span></td>
             </tr>
           </tbody>
         </table>
       </div>
+    </template>
 
-      <!-- Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-7">
-          <h2 class="text-lg font-bold text-slate-800 mb-5">{{ editingId ? 'Edit Plan' : 'New Plan' }}</h2>
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="col-span-2">
-                <label class="block text-xs font-medium text-slate-600 mb-1">Name *</label>
-                <input v-model="form.name" placeholder="Gold Membership"
-                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Price *</label>
-                <input v-model="form.price" type="number" step="0.01" placeholder="49.99"
-                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Currency</label>
-                <input v-model="form.currency" placeholder="USD"
-                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Billing interval (days)</label>
-                <input v-model="form.intervalDays" type="number" placeholder="30"
-                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Gateway</label>
-                <select v-model="form.gateway"
-                        class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
-                  <option v-for="g in GATEWAYS" :key="g">{{ g }}</option>
-                </select>
-              </div>
-              <div class="col-span-2">
-                <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
-                <input v-model="form.description" placeholder="Brief plan description"
-                       class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
-              </div>
-              <div class="col-span-2">
-                <label class="block text-xs font-medium text-slate-600 mb-1">Benefits <span class="text-slate-400 font-normal">(one per line)</span></label>
-                <textarea v-model="form.benefits" rows="4" placeholder="Unlimited haircuts&#10;20% retail discount&#10;Priority booking"
-                          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
-              </div>
-            </div>
-            <p v-if="modalError" class="text-red-500 text-sm">{{ modalError }}</p>
-            <div class="flex justify-end gap-3 pt-1">
-              <button @click="showModal = false" class="text-sm text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors">Cancel</button>
-              <button @click="save" :disabled="saving"
-                      class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
-                {{ saving ? 'Saving…' : 'Save Plan' }}
-              </button>
-            </div>
-          </div>
+    <!-- MEMBERS -->
+    <template v-if="tab === 'members'">
+      <div class="card">
+        <h2 style="font-size:1rem; margin-bottom:.75rem;">Members</h2>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Registered</th></tr></thead>
+          <tbody>
+            <tr v-if="members.length === 0"><td colspan="3" class="empty">No members yet.</td></tr>
+            <tr v-for="m in members" :key="m.id">
+              <td>{{ m.name }}</td>
+              <td>{{ m.email }}</td>
+              <td><small>{{ fmt(m.createdAt) }}</small></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- MEMBERSHIPS -->
+    <template v-if="tab === 'memberships'">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+          <h2 style="font-size:1rem;">Memberships</h2>
+          <select class="filter" v-model="statusFilter" @change="loadMemberships">
+            <option value="">All statuses</option>
+            <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Member</th><th>Subscription</th><th>Status</th><th>Next Billing</th><th></th></tr></thead>
+          <tbody>
+            <tr v-if="memberships.length === 0"><td colspan="6" class="empty">No memberships.</td></tr>
+            <tr v-for="m in memberships" :key="m.id">
+              <td><small style="font-family:monospace">{{ m.id.slice(-8) }}</small></td>
+              <td><small>{{ m.memberId.slice(-8) }}</small></td>
+              <td><small>{{ gidId(m.subscriptionId) }}</small></td>
+              <td><span :class="'badge badge-' + m.status.toLowerCase()">{{ m.status }}</span></td>
+              <td><small>{{ m.nextBillingDate ? fmt(m.nextBillingDate) : '—' }}</small></td>
+              <td>
+                <button v-if="m.status !== 'CANCELLED'" class="btn btn-sm btn-danger" @click="adminCancel(m.id)">Cancel</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+  </main>
+
+  <!-- CREATE SUBSCRIPTION MODAL -->
+  <div class="modal-backdrop" v-if="showCreate" @click.self="showCreate=false">
+    <div class="modal">
+      <h2>New Subscription</h2>
+      <p style="font-size:.82rem;color:#666;margin-bottom:1rem;">
+        Creates a Shopify SellingPlanGroup with the chosen intervals, then creates and attaches a product automatically.
+      </p>
+      <div class="row">
+        <div class="field" style="flex:2">
+          <label>Name</label>
+          <input v-model="newSub.name" placeholder="e.g. Salon Membership"/>
         </div>
       </div>
-    </div>
-  `,
-}
-
-// ── MembersView ───────────────────────────────────────────────────────────────
-
-const MembersView = {
-  setup() {
-    const members = ref([]), loading = ref(true), error = ref(''), search = ref('')
-    onMounted(async () => {
-      try { members.value = await api.members.list() }
-      catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    })
-    const filtered = computed(() => {
-      const q = search.value.toLowerCase()
-      return q ? members.value.filter(m => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)) : members.value
-    })
-    return { members, loading, error, search, filtered }
-  },
-  template: `
-    <div>
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-800">Members</h1>
-        <span class="text-sm text-slate-400">{{ members.length }} total</span>
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>Description</label>
+          <input v-model="newSub.description" placeholder="Optional"/>
+        </div>
       </div>
-      <div class="mb-4">
-        <input v-model="search" placeholder="Search by name or email…"
-               class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+      <hr class="divider"/>
+      <p style="font-size:.82rem;font-weight:600;margin-bottom:.6rem;">Plans (intervals + prices)</p>
+      <div class="plan-row" v-for="p in newSub.plans" :key="p.interval">
+        <span class="interval">{{ p.interval }}</span>
+        <div class="field" style="flex:1">
+          <label>Price</label>
+          <input type="number" v-model.number="p.price" step="0.01" min="0"/>
+        </div>
+        <div class="field" style="width:75px">
+          <label>Currency</label>
+          <input v-model="p.currency" maxlength="3"/>
+        </div>
+        <div class="field" style="width:60px">
+          <label>Every</label>
+          <input type="number" v-model.number="p.intervalCount" min="1"/>
+        </div>
       </div>
-      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
-      <div v-if="loading" class="text-slate-400">Loading…</div>
-      <div v-else class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
-            <tr>
-              <th class="px-5 py-3 text-left font-medium">Name</th>
-              <th class="px-5 py-3 text-left font-medium">Email</th>
-              <th class="px-5 py-3 text-left font-medium">Phone</th>
-              <th class="px-5 py-3 text-left font-medium">Joined</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-if="filtered.length === 0">
-              <td colspan="4" class="px-5 py-10 text-center text-slate-400">
-                {{ search ? 'No members match your search.' : 'No members yet.' }}
-              </td>
-            </tr>
-            <tr v-for="m in filtered" :key="m.id" class="hover:bg-slate-50">
-              <td class="px-5 py-3">
-                <div class="font-medium text-slate-800">{{ m.name }}</div>
-                <div class="font-mono text-xs text-slate-300">{{ m.id }}</div>
-              </td>
-              <td class="px-5 py-3 text-slate-600">{{ m.email }}</td>
-              <td class="px-5 py-3 text-slate-500">{{ m.phone || '—' }}</td>
-              <td class="px-5 py-3 text-slate-400">{{ new Date(m.createdAt).toLocaleDateString() }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `,
-}
-
-// ── MembershipsView ───────────────────────────────────────────────────────────
-
-const MembershipsView = {
-  components: { StatusBadge },
-  setup() {
-    const memberships = ref([]), loading = ref(true), error = ref('')
-    const statusFilter = ref('')
-    const STATUSES = ['', 'ACTIVE', 'PENDING', 'CANCELLED', 'EXPIRED', 'FAILED']
-
-    async function load() {
-      loading.value = true; error.value = ''
-      try { memberships.value = await api.memberships.list(statusFilter.value) }
-      catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    }
-
-    onMounted(load)
-    watch(statusFilter, load)
-
-    async function cancel(id) {
-      if (!confirm('Cancel this membership?')) return
-      try {
-        await api.memberships.cancel(id)
-        await load()
-      } catch (e) { error.value = e.message }
-    }
-
-    return { memberships, loading, error, statusFilter, STATUSES, cancel }
-  },
-  template: `
-    <div>
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-800">Memberships</h1>
-        <span class="text-sm text-slate-400">{{ memberships.length }} shown</span>
-      </div>
-
-      <div class="mb-4 flex items-center gap-2 flex-wrap">
-        <button v-for="s in STATUSES" :key="s"
-                @click="statusFilter = s"
-                :class="statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'"
-                class="text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
-          {{ s || 'All' }}
+      <div class="error" v-if="modalError">{{ modalError }}</div>
+      <div class="actions">
+        <button class="btn btn-outline" @click="showCreate=false">Cancel</button>
+        <button class="btn btn-primary" :disabled="creating" @click="createSub">
+          {{ creating ? 'Creating…' : 'Create in Shopify' }}
         </button>
       </div>
-
-      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
-      <div v-if="loading" class="text-slate-400">Loading…</div>
-      <div v-else class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
-            <tr>
-              <th class="px-5 py-3 text-left font-medium">Member ID</th>
-              <th class="px-5 py-3 text-left font-medium">Plan ID</th>
-              <th class="px-5 py-3 text-left font-medium">Gateway</th>
-              <th class="px-5 py-3 text-left font-medium">Status</th>
-              <th class="px-5 py-3 text-left font-medium">Renews</th>
-              <th class="px-5 py-3 text-left font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-if="memberships.length === 0">
-              <td colspan="6" class="px-5 py-10 text-center text-slate-400">No memberships found.</td>
-            </tr>
-            <tr v-for="m in memberships" :key="m.id" class="hover:bg-slate-50">
-              <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.memberId.slice(0,12) }}…</td>
-              <td class="px-5 py-3 font-mono text-xs text-slate-500">{{ m.planId.slice(0,12) }}…</td>
-              <td class="px-5 py-3 text-slate-600">{{ m.gateway }}</td>
-              <td class="px-5 py-3"><StatusBadge :status="m.status"/></td>
-              <td class="px-5 py-3 text-slate-400">
-                {{ m.currentPeriodEnd ? new Date(m.currentPeriodEnd).toLocaleDateString() : '—' }}
-              </td>
-              <td class="px-5 py-3">
-                <button v-if="m.status === 'ACTIVE'" @click="cancel(m.id)"
-                        class="text-xs font-medium text-red-400 hover:text-red-600">
-                  Cancel
-                </button>
-                <span v-else class="text-xs text-slate-300">—</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
-  `,
-}
+  </div>
 
-// ── Router ────────────────────────────────────────────────────────────────────
+</div>
 
-const router = VueRouter.createRouter({
-  history: VueRouter.createWebHashHistory(),
-  routes: [
-    { path: '/',               redirect: '/dashboard' },
-    { path: '/dashboard',      component: DashboardView },
-    { path: '/plans',          component: PlansView },
-    { path: '/members',        component: MembersView },
-    { path: '/memberships',    component: MembershipsView },
-  ],
-})
-
-// ── Root App with Sidebar ─────────────────────────────────────────────────────
-
-const navItems = [
-  { path: '/dashboard',   label: 'Dashboard',   icon: '▦' },
-  { path: '/plans',       label: 'Plans',        icon: '✦' },
-  { path: '/members',     label: 'Members',      icon: '◎' },
-  { path: '/memberships', label: 'Memberships',  icon: '↻' },
-]
-
+<script>
+const { createApp } = Vue;
 createApp({
-  components: { StatusBadge },
-  setup() {
-    const route = VueRouter.useRoute()
-    const isActive = (path) => route.path === path
-    return { navItems, isActive }
+  data() {
+    return {
+      tab: 'dashboard',
+      tabs: [
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'subscriptions', label: 'Subscriptions' },
+        { id: 'members', label: 'Members' },
+        { id: 'memberships', label: 'Memberships' },
+      ],
+      stats: {},
+      subscriptions: [],
+      subscriptionsError: '',
+      members: [],
+      memberships: [],
+      statusFilter: '',
+      statuses: ['PENDING', 'ACTIVE', 'CANCELLED', 'SUSPENDED'],
+      showCreate: false,
+      creating: false,
+      newSub: { name: '', description: '', plans: [] },
+      modalError: '',
+    };
   },
-  template: `
-    <!-- Sidebar -->
-    <aside class="w-56 shrink-0 bg-slate-800 flex flex-col h-screen sticky top-0">
-      <div class="px-5 py-5 border-b border-slate-700">
-        <div class="text-white font-bold text-base tracking-tight">✂ LuxeSalon</div>
-        <div class="text-slate-400 text-xs mt-0.5">Admin Panel</div>
-      </div>
-      <nav class="flex-1 px-3 py-4 space-y-0.5">
-        <a v-for="item in navItems" :key="item.path"
-           :href="'#' + item.path"
-           :class="isActive(item.path) ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
-          <span class="text-base leading-none">{{ item.icon }}</span>
-          {{ item.label }}
-        </a>
-      </nav>
-      <div class="px-5 py-4 border-t border-slate-700">
-        <a href="/index.html" class="text-slate-500 hover:text-slate-300 text-xs transition-colors">← User portal</a>
-      </div>
-    </aside>
-
-    <!-- Main content -->
-    <div class="flex-1 overflow-y-auto">
-      <div class="max-w-5xl mx-auto px-6 py-8">
-        <router-view/>
-      </div>
-    </div>
-  `
-}).use(router).mount('#app')
+  mounted() { this.load(); },
+  methods: {
+    async load() {
+      if (this.tab === 'dashboard') {
+        this.stats = await get('/api/admin/dashboard').catch(() => ({}));
+      } else if (this.tab === 'subscriptions') {
+        this.subscriptionsError = '';
+        try {
+          this.subscriptions = await get('/api/admin/subscriptions');
+        } catch (e) {
+          this.subscriptionsError = e.message;
+        }
+      } else if (this.tab === 'members') {
+        this.members = await get('/api/admin/members').catch(() => []);
+      } else if (this.tab === 'memberships') {
+        await this.loadMemberships();
+      }
+    },
+    async loadMemberships() {
+      const q = this.statusFilter ? '?status=' + this.statusFilter : '';
+      this.memberships = await get('/api/admin/memberships' + q).catch(() => []);
+    },
+    openCreate() {
+      this.newSub = {
+        name: '',
+        description: '',
+        plans: [
+          { interval: 'DAY',   intervalCount: 1, price: 1.99,  currency: 'USD' },
+          { interval: 'WEEK',  intervalCount: 1, price: 9.99,  currency: 'USD' },
+          { interval: 'MONTH', intervalCount: 1, price: 29.99, currency: 'USD' },
+          { interval: 'YEAR',  intervalCount: 1, price: 299.99, currency: 'USD' },
+        ],
+      };
+      this.modalError = '';
+      this.showCreate = true;
+    },
+    async createSub() {
+      this.modalError = '';
+      this.creating = true;
+      try {
+        const created = await post('/api/admin/subscriptions', this.newSub);
+        this.subscriptions = [created, ...this.subscriptions];
+        this.showCreate = false;
+      } catch (e) {
+        this.modalError = e.message;
+      } finally {
+        this.creating = false;
+      }
+    },
+    async adminCancel(id) {
+      if (!confirm('Cancel this membership?')) return;
+      await patch('/api/admin/memberships/' + id + '/cancel').catch(e => alert(e.message));
+      await this.loadMemberships();
+    },
+    gidId(gid) {
+      return gid ? gid.split('/').pop() : '—';
+    },
+    fmt(ts) {
+      return ts ? new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+    },
+  },
+}).mount('#app');
 </script>
 </body>
 </html>

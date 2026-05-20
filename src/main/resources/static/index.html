@@ -3,437 +3,233 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LuxeSalon — Memberships</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/config.js"></script>
-  <script src="https://js.stripe.com/v3/"></script>
+  <title>Membership Portal</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
+  <script src="/js/api.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f4f6f9; color: #1a1a2e; min-height: 100vh; }
+    header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    .user-chip { display: flex; align-items: center; gap: .5rem; font-size: .875rem; }
+    .user-chip button { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; padding: .3rem .75rem; border-radius: 20px; cursor: pointer; font-size: .8rem; }
+    main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    .auth-card { background: #fff; border-radius: 12px; padding: 2rem; max-width: 400px; margin: 3rem auto; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+    .auth-card h2 { font-size: 1.1rem; margin-bottom: 1.25rem; }
+    .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .9rem; }
+    .field label { font-size: .8rem; font-weight: 600; color: #555; }
+    .field input { padding: .55rem .8rem; border: 1px solid #ddd; border-radius: 7px; font-size: .95rem; }
+    .field input:focus { outline: none; border-color: #6c63ff; }
+    .btn { display: inline-block; padding: .55rem 1.1rem; border-radius: 7px; font-size: .9rem; cursor: pointer; border: none; font-weight: 500; text-align: center; }
+    .btn-primary { background: #6c63ff; color: #fff; width: 100%; }
+    .btn-primary:hover { background: #574fd6; }
+    .btn-outline { background: transparent; border: 1px solid #6c63ff; color: #6c63ff; width: 100%; margin-top: .5rem; }
+    .btn-sm { width: auto; padding: .35rem .8rem; font-size: .85rem; }
+    .btn-danger-sm { background: #ffeaea; color: #c0392b; border: none; padding: .35rem .7rem; border-radius: 6px; font-size: .8rem; cursor: pointer; }
+    .error { color: #c0392b; font-size: .85rem; margin-top: .4rem; }
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .tabs button { padding: .45rem 1.1rem; border-radius: 20px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: .875rem; color: #555; }
+    .tabs button.active { background: #6c63ff; color: #fff; border-color: #6c63ff; }
+    /* Subscription cards */
+    .sub-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.25rem; overflow: hidden; }
+    .sub-card .sub-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #eee; }
+    .sub-card .sub-header h3 { font-size: 1.05rem; margin-bottom: .2rem; }
+    .sub-card .sub-header p { font-size: .875rem; color: #666; }
+    .plan-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .75rem; padding: 1.25rem 1.5rem; }
+    .plan-option { border: 2px solid #eee; border-radius: 10px; padding: 1rem; cursor: pointer; transition: border-color .15s; }
+    .plan-option:hover { border-color: #6c63ff; }
+    .plan-option.selected { border-color: #6c63ff; background: #f5f3ff; }
+    .plan-option .interval { font-weight: 700; font-size: .9rem; }
+    .plan-option .price { font-size: 1.4rem; font-weight: 700; color: #6c63ff; margin: .3rem 0; }
+    .plan-option .price small { font-size: .85rem; font-weight: 400; color: #888; }
+    .sub-card .sub-footer { padding: .9rem 1.5rem; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
+    .badge { display: inline-block; padding: .2rem .6rem; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+    .badge-active { background: #e6faf0; color: #1d9e6a; }
+    .badge-pending { background: #fff8e6; color: #c07c00; }
+    .badge-cancelled { background: #ffeaea; color: #c0392b; }
+    .badge-suspended { background: #fdf0ff; color: #8e44ad; }
+    .membership-card { background: #fff; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; flex-wrap: wrap; gap: .5rem; }
+    .banner { padding: 1rem 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; font-size: .9rem; }
+    .banner-success { background: #e6faf0; color: #1d9e6a; border: 1px solid #b2dfcc; }
+    .banner-warn { background: #fff8e6; color: #c07c00; border: 1px solid #f5d576; }
+    .empty { text-align: center; color: #999; padding: 2rem; }
+  </style>
 </head>
-<body class="bg-stone-50 text-stone-800 min-h-screen">
-<div id="app"></div>
-<script>
-const { createApp, ref, reactive, onMounted } = Vue
+<body>
+<div id="app">
+  <header>
+    <h1>Membership Portal</h1>
+    <div class="user-chip" v-if="member">
+      <span>{{ member.name || member.email }}</span>
+      <button @click="logout">Log out</button>
+    </div>
+  </header>
 
-// ── Shared payment state (PlanDetailView → PayView) ───────────────────────────
-const paymentState = reactive({ clientSecret: '', gateway: '', memberId: '', planName: '', planPrice: '' })
+  <main>
 
-// ── API ───────────────────────────────────────────────────────────────────────
+    <!-- Auth -->
+    <template v-if="!member">
+      <div class="auth-card">
+        <h2>{{ authMode === 'register' ? 'Create account' : 'Sign in' }}</h2>
+        <div class="field" v-if="authMode === 'register'">
+          <label>Name</label>
+          <input v-model="authForm.name" placeholder="Your name"/>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input v-model="authForm.email" type="email" placeholder="you@example.com" @keyup.enter="authSubmit"/>
+        </div>
+        <div class="error" v-if="authError">{{ authError }}</div>
+        <button class="btn btn-primary" @click="authSubmit">
+          {{ authMode === 'register' ? 'Register' : 'Sign in' }}
+        </button>
+        <button class="btn btn-outline" @click="toggleAuth">
+          {{ authMode === 'register' ? 'Already registered? Sign in' : 'New here? Register' }}
+        </button>
+      </div>
+    </template>
 
-async function apiFetch(url, opts = {}) {
-  const res = await fetch((window.APP_CONFIG?.apiBase ?? '/api') + url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || `Error ${res.status}`)
-  }
-  return res.status === 204 ? null : res.json()
-}
+    <!-- Logged in -->
+    <template v-else>
+      <div class="banner banner-success" v-if="checkoutSuccess">
+        Payment complete — your membership is being activated.
+      </div>
+      <div class="banner banner-warn" v-if="checkoutCancelled">
+        Checkout cancelled. You can try again any time.
+      </div>
 
-const api = {
-  plans:       { list: () => apiFetch('/plans'), get: id => apiFetch(`/plans/${id}`) },
-  members:     { register: b => apiFetch('/members', { method: 'POST', body: b }), get: id => apiFetch(`/members/${id}`) },
-  memberships: { list: id => apiFetch(`/members/${id}/memberships`), subscribe: (mid, b) => apiFetch(`/members/${mid}/memberships`, { method: 'POST', body: b }) },
-}
+      <div class="tabs">
+        <button :class="{ active: view === 'browse' }" @click="view='browse'">Browse Plans</button>
+        <button :class="{ active: view === 'memberships' }" @click="view='memberships'; loadMemberships()">My Memberships</button>
+      </div>
 
-// ── StatusBadge ───────────────────────────────────────────────────────────────
-
-const StatusBadge = {
-  props: ['status'],
-  computed: {
-    cls() {
-      return { ACTIVE:'bg-green-100 text-green-700', PENDING:'bg-yellow-100 text-yellow-700', CANCELLED:'bg-red-100 text-red-600', EXPIRED:'bg-stone-100 text-stone-500', FAILED:'bg-red-100 text-red-600' }[this.status] || 'bg-stone-100 text-stone-500'
-    }
-  },
-  template: `<span :class="cls" class="text-xs font-medium px-2.5 py-0.5 rounded-full">{{ status }}</span>`,
-}
-
-// ── PlansView ─────────────────────────────────────────────────────────────────
-
-const PlansView = {
-  setup() {
-    const router = VueRouter.useRouter()
-    const plans = ref([]), loading = ref(true), error = ref('')
-    onMounted(async () => {
-      try { plans.value = await api.plans.list() }
-      catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    })
-    return { plans, loading, error, router }
-  },
-  template: `
-    <div class="max-w-5xl mx-auto px-4 py-12">
-      <h1 class="text-3xl font-bold mb-2">Our Memberships</h1>
-      <p class="text-stone-500 mb-8">Choose the plan that works best for you.</p>
-      <div v-if="loading" class="text-stone-400 py-16 text-center">Loading plans…</div>
-      <div v-else-if="error" class="text-red-500 py-8">{{ error }}</div>
-      <div v-else-if="plans.length === 0" class="text-stone-400 py-16 text-center">No active plans available at the moment.</div>
-      <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="p in plans" :key="p.id"
-             class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 flex flex-col hover:shadow-md transition-shadow">
-          <div class="flex-1">
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-xl font-semibold">{{ p.name }}</h2>
-              <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{{ p.gateway }}</span>
+      <!-- Browse -->
+      <template v-if="view === 'browse'">
+        <div class="empty" v-if="subscriptions.length === 0">No subscription plans available yet.</div>
+        <div class="sub-card" v-for="s in subscriptions" :key="s.id">
+          <div class="sub-header">
+            <h3>{{ s.name }}</h3>
+            <p v-if="s.description">{{ s.description }}</p>
+          </div>
+          <div class="plan-options">
+            <div class="plan-option"
+                 v-for="p in s.plans" :key="p.shopifySellingPlanId"
+                 :class="{ selected: selected[s.id] === p.shopifySellingPlanId }"
+                 @click="selected[s.id] = p.shopifySellingPlanId">
+              <div class="interval">{{ labelFor(p.interval, p.intervalCount) }}</div>
+              <div class="price">{{ p.currency }} {{ p.price }}</div>
             </div>
-            <p class="text-stone-500 text-sm mb-4">{{ p.description }}</p>
-            <div class="text-3xl font-bold text-amber-600 mb-0.5">{{ p.currency }} {{ Number(p.price).toFixed(2) }}</div>
-            <div class="text-stone-400 text-sm mb-5">every {{ p.intervalDays }} days</div>
-            <ul class="space-y-1.5 mb-6">
-              <li v-for="b in p.benefits" :key="b" class="flex items-start gap-2 text-sm text-stone-600">
-                <svg class="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>{{ b }}
-              </li>
-            </ul>
           </div>
-          <button @click="router.push('/plans/' + p.id)"
-                  class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
-            View & Subscribe
-          </button>
-        </div>
-      </div>
-    </div>
-  `,
-}
-
-// ── PlanDetailView ────────────────────────────────────────────────────────────
-
-const PlanDetailView = {
-  setup() {
-    const route = VueRouter.useRoute(), router = VueRouter.useRouter()
-    const plan = ref(null), loading = ref(true), error = ref('')
-    const memberId = ref(''), subscribing = ref(false), formErr = ref('')
-
-    onMounted(async () => {
-      try { plan.value = await api.plans.get(route.params.id) }
-      catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    })
-
-    async function subscribe() {
-      if (!memberId.value.trim()) { formErr.value = 'Member ID is required.'; return }
-      subscribing.value = true; formErr.value = ''
-      try {
-        const res = await api.memberships.subscribe(memberId.value, { planId: plan.value.id, gateway: plan.value.gateway })
-        // Hand off to PayView
-        paymentState.clientSecret = res.clientSecret
-        paymentState.gateway      = plan.value.gateway
-        paymentState.memberId     = memberId.value
-        paymentState.planName     = plan.value.name
-        paymentState.planPrice    = `${plan.value.currency} ${Number(plan.value.price).toFixed(2)} / ${plan.value.intervalDays} days`
-        router.push('/pay')
-      } catch (e) { formErr.value = e.message }
-      finally { subscribing.value = false }
-    }
-
-    return { plan, loading, error, memberId, subscribing, formErr, subscribe, router }
-  },
-  template: `
-    <div class="max-w-2xl mx-auto px-4 py-10">
-      <button @click="router.push('/plans')" class="flex items-center gap-1 text-stone-400 hover:text-stone-600 text-sm mb-6">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-        Back to plans
-      </button>
-      <div v-if="loading" class="text-stone-400">Loading…</div>
-      <div v-else-if="error" class="text-red-500">{{ error }}</div>
-      <template v-else-if="plan">
-        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8 mb-6">
-          <div class="flex items-center justify-between mb-2">
-            <h1 class="text-2xl font-bold">{{ plan.name }}</h1>
-            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{{ plan.gateway }}</span>
+          <div class="sub-footer">
+            <button class="btn btn-primary btn-sm"
+                    :disabled="!selected[s.id] || subscribing === s.id"
+                    @click="subscribe(s)">
+              {{ subscribing === s.id ? 'Loading…' : 'Subscribe' }}
+            </button>
           </div>
-          <p class="text-stone-500 mb-4">{{ plan.description }}</p>
-          <div class="text-4xl font-bold text-amber-600 mb-0.5">{{ plan.currency }} {{ Number(plan.price).toFixed(2) }}</div>
-          <div class="text-stone-400 text-sm mb-6">billed every {{ plan.intervalDays }} days</div>
-          <ul class="space-y-2">
-            <li v-for="b in plan.benefits" :key="b" class="flex items-start gap-2 text-stone-600 text-sm">
-              <svg class="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>{{ b }}
-            </li>
-          </ul>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
-          <h2 class="text-lg font-semibold mb-3">Subscribe</h2>
-          <p class="text-stone-500 text-sm mb-4">
-            Already a member? Enter your Member ID. New here?
-            <a href="#/register" class="text-amber-600 hover:underline">Register first →</a>
-          </p>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Member ID</label>
-          <input v-model="memberId" placeholder="e.g. 665abc123ef..."
-                 class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 mb-3"/>
-          <p v-if="formErr" class="text-red-500 text-sm mb-3">{{ formErr }}</p>
-          <button @click="subscribe" :disabled="subscribing"
-                  class="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
-            {{ subscribing ? 'Creating subscription…' : 'Subscribe Now' }}
-          </button>
         </div>
       </template>
-    </div>
-  `,
-}
 
-// ── PayView ───────────────────────────────────────────────────────────────────
-
-const PayView = {
-  setup() {
-    const router = VueRouter.useRouter()
-    const initialising = ref(true), payError = ref(''), processing = ref(false)
-    const stripeRef = ref(null), elementsRef = ref(null)
-
-    onMounted(async () => {
-      if (!paymentState.clientSecret) { router.replace('/plans'); return }
-
-      // Shopify: the clientSecret is the confirmation URL — redirect straight away
-      if (paymentState.gateway === 'SHOPIFY') {
-        window.location.href = paymentState.clientSecret
-        return
-      }
-
-      // Stripe: mount the Payment Element
-      const key = window.APP_CONFIG?.stripePublishableKey
-      if (!key || key.startsWith('pk_test_...')) {
-        payError.value = 'Stripe publishable key is not configured. Set stripePublishableKey in config.js.'
-        initialising.value = false
-        return
-      }
-      if (!window.Stripe) {
-        payError.value = 'Stripe.js failed to load. Check your internet connection and refresh.'
-        initialising.value = false
-        return
-      }
-      try {
-        const stripe   = window.Stripe(key)
-        const elements = stripe.elements({ clientSecret: paymentState.clientSecret })
-        elements.create('payment').mount('#stripe-payment-element')
-        stripeRef.value   = stripe
-        elementsRef.value = elements
-      } catch (e) {
-        payError.value = e.message
-      } finally {
-        initialising.value = false
-      }
-    })
-
-    async function pay() {
-      processing.value = true; payError.value = ''
-      const { error: stripeError } = await stripeRef.value.confirmPayment({
-        elements: elementsRef.value,
-        confirmParams: {
-          return_url: window.location.origin + '/#/account?id=' + paymentState.memberId,
-        },
-      })
-      // confirmPayment only returns an error — on success Stripe redirects via return_url
-      if (stripeError) payError.value = stripeError.message
-      processing.value = false
-    }
-
-    return { initialising, payError, processing, pay, paymentState, router }
-  },
-  template: `
-    <div class="max-w-md mx-auto px-4 py-12">
-      <button @click="router.push('/plans')" class="flex items-center gap-1 text-stone-400 hover:text-stone-600 text-sm mb-6">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-        Back to plans
-      </button>
-
-      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
-        <h1 class="text-xl font-bold mb-1">Complete Payment</h1>
-        <p class="text-stone-400 text-sm mb-6">Secure checkout via {{ paymentState.gateway }}</p>
-
-        <!-- Order summary -->
-        <div class="bg-stone-50 rounded-xl p-4 mb-6 flex items-center justify-between">
+      <!-- My Memberships -->
+      <template v-if="view === 'memberships'">
+        <div class="empty" v-if="memberships.length === 0">You have no memberships yet.</div>
+        <div class="membership-card" v-for="m in memberships" :key="m.id">
           <div>
-            <div class="font-semibold text-stone-800 text-sm">{{ paymentState.planName }}</div>
-            <div class="text-stone-400 text-xs mt-0.5">Auto-renewing subscription</div>
+            <div style="font-weight:600;margin-bottom:.3rem;">{{ subName(m.subscriptionId) }}</div>
+            <div style="font-size:.8rem;color:#888">Since {{ fmt(m.startDate || m.createdAt) }}</div>
+            <div style="font-size:.8rem;color:#888" v-if="m.nextBillingDate">Next billing: {{ fmt(m.nextBillingDate) }}</div>
           </div>
-          <div class="font-bold text-amber-600 text-sm">{{ paymentState.planPrice }}</div>
-        </div>
-
-        <!-- Stripe Payment Element mounts here -->
-        <div v-if="initialising" class="text-stone-400 text-sm text-center py-8">Preparing secure payment form…</div>
-        <template v-else-if="!payError">
-          <div id="stripe-payment-element" class="mb-5"></div>
-          <button @click="pay" :disabled="processing"
-                  class="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-            <svg v-if="processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            {{ processing ? 'Processing…' : 'Pay Now' }}
-          </button>
-          <p class="text-center text-stone-400 text-xs mt-4">🔒 Payments are secured by {{ paymentState.gateway }}</p>
-        </template>
-
-        <div v-if="payError" class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
-          {{ payError }}
-        </div>
-      </div>
-    </div>
-  `,
-}
-
-// ── RegisterView ──────────────────────────────────────────────────────────────
-
-const RegisterView = {
-  setup() {
-    const router = VueRouter.useRouter()
-    const form = reactive({ name: '', email: '', phone: '' })
-    const loading = ref(false), error = ref(''), success = ref(null)
-
-    async function submit() {
-      if (!form.name || !form.email) { error.value = 'Name and email are required.'; return }
-      loading.value = true; error.value = ''
-      try { success.value = await api.members.register({ ...form }) }
-      catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    }
-
-    return { form, loading, error, success, submit, router }
-  },
-  template: `
-    <div class="max-w-md mx-auto px-4 py-12">
-      <h1 class="text-2xl font-bold mb-1">Become a Member</h1>
-      <p class="text-stone-500 text-sm mb-6">Register once to subscribe to any plan.</p>
-
-      <div v-if="success" class="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
-        <div class="text-5xl mb-3">🎉</div>
-        <p class="font-semibold text-stone-800 text-lg mb-1">Welcome, {{ success.name }}!</p>
-        <p class="text-stone-500 text-sm mb-2">Your Member ID — keep this safe:</p>
-        <code class="block bg-white border border-green-200 text-green-800 px-4 py-2 rounded-xl text-sm font-mono mb-5 break-all">{{ success.id }}</code>
-        <button @click="router.push('/plans')" class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
-          Browse Plans
-        </button>
-      </div>
-
-      <form v-else @submit.prevent="submit" class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Full Name <span class="text-red-400">*</span></label>
-          <input v-model="form.name" placeholder="Jane Smith"
-                 class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Email <span class="text-red-400">*</span></label>
-          <input v-model="form.email" type="email" placeholder="jane@example.com"
-                 class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Phone</label>
-          <input v-model="form.phone" placeholder="+1 555 000 0000"
-                 class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
-        </div>
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-        <button type="submit" :disabled="loading"
-                class="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
-          {{ loading ? 'Registering…' : 'Create Account' }}
-        </button>
-      </form>
-    </div>
-  `,
-}
-
-// ── AccountView ───────────────────────────────────────────────────────────────
-
-const AccountView = {
-  components: { StatusBadge },
-  setup() {
-    const route = VueRouter.useRoute()
-    const memberId = ref(route.query.id || '')
-    const member = ref(null), memberships = ref([]), loading = ref(false), error = ref('')
-
-    async function load() {
-      if (!memberId.value.trim()) return
-      loading.value = true; error.value = ''; member.value = null; memberships.value = []
-      try {
-        [member.value, memberships.value] = await Promise.all([
-          api.members.get(memberId.value),
-          api.memberships.list(memberId.value),
-        ])
-      } catch (e) { error.value = e.message }
-      finally { loading.value = false }
-    }
-
-    onMounted(() => { if (memberId.value) load() })
-
-    return { memberId, member, memberships, loading, error, load }
-  },
-  template: `
-    <div class="max-w-2xl mx-auto px-4 py-12">
-      <h1 class="text-2xl font-bold mb-6">My Account</h1>
-      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 mb-6">
-        <label class="block text-sm font-medium text-stone-700 mb-1">Member ID</label>
-        <div class="flex gap-2">
-          <input v-model="memberId" placeholder="Enter your member ID…" @keyup.enter="load"
-                 class="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
-          <button @click="load" :disabled="loading"
-                  class="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors">
-            {{ loading ? '…' : 'Load' }}
-          </button>
-        </div>
-      </div>
-
-      <p v-if="error" class="text-red-500 text-sm mb-4">{{ error }}</p>
-
-      <template v-if="member">
-        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-5 mb-5">
-          <p class="font-semibold text-stone-800">{{ member.name }}</p>
-          <p class="text-stone-500 text-sm">{{ member.email }}</p>
-          <p v-if="member.phone" class="text-stone-400 text-sm">{{ member.phone }}</p>
-        </div>
-
-        <h2 class="font-semibold text-stone-700 mb-3">Memberships</h2>
-        <p v-if="memberships.length === 0" class="text-stone-400 text-sm text-center py-10">No memberships yet. <a href="#/plans" class="text-amber-600 hover:underline">Browse plans →</a></p>
-        <div v-for="m in memberships" :key="m.id"
-             class="bg-white rounded-xl border border-stone-100 p-4 mb-3 flex items-start justify-between">
-          <div>
-            <p class="text-sm font-medium text-stone-700">Plan ID: <span class="font-mono text-xs">{{ m.planId }}</span></p>
-            <p class="text-xs text-stone-400 mt-0.5">
-              {{ m.gateway }}
-              <span v-if="m.currentPeriodEnd"> · renews {{ new Date(m.currentPeriodEnd).toLocaleDateString() }}</span>
-            </p>
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <span :class="'badge badge-' + m.status.toLowerCase()">{{ m.status }}</span>
+            <a v-if="m.status === 'PENDING' && m.checkoutUrl" :href="m.checkoutUrl"
+               class="btn btn-primary btn-sm" style="text-decoration:none;">Complete checkout</a>
+            <button v-if="m.status === 'ACTIVE'" class="btn-danger-sm" @click="cancel(m)">Cancel</button>
           </div>
-          <StatusBadge :status="m.status"/>
         </div>
       </template>
-    </div>
-  `,
-}
 
-// ── Router + App ──────────────────────────────────────────────────────────────
+    </template>
+  </main>
+</div>
 
-const router = VueRouter.createRouter({
-  history: VueRouter.createWebHashHistory(),
-  routes: [
-    { path: '/',          redirect: '/plans' },
-    { path: '/plans',     component: PlansView },
-    { path: '/plans/:id', component: PlanDetailView },
-    { path: '/pay',       component: PayView },
-    { path: '/register',  component: RegisterView },
-    { path: '/account',   component: AccountView },
-  ],
-})
-
+<script>
+const { createApp, reactive } = Vue;
 createApp({
-  template: `
-    <nav class="sticky top-0 z-10 bg-white border-b border-stone-100 shadow-sm">
-      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <a href="#/plans" class="text-lg font-bold text-amber-600 tracking-tight">✂ LuxeSalon</a>
-        <div class="flex items-center gap-6 text-sm">
-          <a href="#/plans"    class="text-stone-600 hover:text-amber-600 transition-colors">Plans</a>
-          <a href="#/register" class="text-stone-600 hover:text-amber-600 transition-colors">Register</a>
-          <a href="#/account"  class="text-stone-600 hover:text-amber-600 transition-colors">My Account</a>
-          <a href="/admin.html" class="text-stone-400 hover:text-stone-600 transition-colors border border-stone-200 px-3 py-1 rounded-lg text-xs">Admin</a>
-        </div>
-      </div>
-    </nav>
-    <router-view/>
-  `
-}).use(router).mount('#app')
+  data() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      member: JSON.parse(localStorage.getItem('member') || 'null'),
+      authMode: 'login',
+      authForm: { name: '', email: '' },
+      authError: '',
+      view: 'browse',
+      subscriptions: [],
+      memberships: [],
+      selected: {},   // { subscriptionId → shopifySellingPlanId }
+      subscribing: null,
+      checkoutSuccess: params.get('checkout') === 'success',
+      checkoutCancelled: params.get('checkout') === 'cancel',
+    };
+  },
+  async mounted() {
+    this.subscriptions = await get('/api/subscriptions').catch(() => []);
+    if (this.member && this.checkoutSuccess) {
+      this.view = 'memberships';
+      await this.loadMemberships();
+    }
+    if (this.checkoutSuccess || this.checkoutCancelled) {
+      history.replaceState({}, '', window.location.pathname);
+    }
+  },
+  methods: {
+    toggleAuth() { this.authMode = this.authMode === 'register' ? 'login' : 'register'; this.authError = ''; },
+    async authSubmit() {
+      this.authError = '';
+      try {
+        const result = this.authMode === 'register'
+          ? await post('/api/auth/register', { email: this.authForm.email, name: this.authForm.name })
+          : await post('/api/auth/lookup', { email: this.authForm.email });
+        this.member = result;
+        localStorage.setItem('member', JSON.stringify(result));
+      } catch (e) { this.authError = e.message; }
+    },
+    logout() { this.member = null; localStorage.removeItem('member'); },
+    async subscribe(sub) {
+      const sellingPlanId = this.selected[sub.id];
+      if (!sellingPlanId) return;
+      this.subscribing = sub.id;
+      try {
+        const membership = await post('/api/members/' + this.member.id + '/memberships', {
+          subscriptionId: sub.id,
+          shopifySellingPlanId: sellingPlanId,
+        });
+        if (membership.checkoutUrl) window.location.href = membership.checkoutUrl;
+        else alert('No checkout URL returned.');
+      } catch (e) { alert(e.message); }
+      finally { this.subscribing = null; }
+    },
+    async loadMemberships() {
+      this.memberships = await get('/api/members/' + this.member.id + '/memberships').catch(() => []);
+    },
+    async cancel(m) {
+      if (!confirm('Cancel this membership?')) return;
+      try {
+        await del('/api/members/' + this.member.id + '/memberships/' + m.id);
+        await this.loadMemberships();
+      } catch (e) { alert(e.message); }
+    },
+    subName(id) {
+      return this.subscriptions.find(s => s.id === id)?.name || id?.slice(-8);
+    },
+    labelFor(interval, count) {
+      const map = { DAY: 'Daily', WEEK: 'Weekly', MONTH: 'Monthly', YEAR: 'Yearly' };
+      return count > 1 ? `Every ${count} ${interval.toLowerCase()}s` : (map[interval] || interval);
+    },
+    fmt(ts) {
+      return ts ? new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+    },
+  },
+}).mount('#app');
 </script>
 </body>
 </html>
