@@ -4,6 +4,7 @@ import com.example.membership_flow.shopify.graphql.GraphQLRequest;
 import com.example.membership_flow.shopify.graphql.ProductsQueryResult;
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupAddProductsResult;
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupCreateResult;
+import com.example.membership_flow.shopify.graphql.SellingPlanGroupDeleteResult;
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupProductsQueryResult;
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupRemoveProductsResult;
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupUpdateResult;
@@ -46,4 +47,7 @@ public interface ShopifyAdminClient {
 
     @PostExchange("/graphql.json")
     SubscriptionProductsQueryResult listSubscriptionProducts(@RequestBody GraphQLRequest request);
+
+    @PostExchange("/graphql.json")
+    SellingPlanGroupDeleteResult deleteSellingPlanGroup(@RequestBody GraphQLRequest request);
 }

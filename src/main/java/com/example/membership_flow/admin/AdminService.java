@@ -11,6 +11,7 @@ import com.example.membership_flow.admin.dto.LinkProductRequest;
 import com.example.membership_flow.admin.dto.LinkProductResponse;
 import com.example.membership_flow.admin.dto.ProductsResponse;
 import com.example.membership_flow.admin.dto.RemoveProductRequest;
+import com.example.membership_flow.admin.dto.RemoveSellingPlanRequest;
 import com.example.membership_flow.admin.dto.SellingGroupsResponse;
 import com.example.membership_flow.shopify.ShopifyAdminClient;
 import com.example.membership_flow.shopify.ShopifyProperties;
@@ -102,7 +103,7 @@ public class AdminService {
     private static final String REMOVE_PRODUCTS_FROM_GROUP = """
             mutation sellingPlanGroupRemoveProducts($id: ID!, $productIds: [ID!]!) {
               sellingPlanGroupRemoveProducts(id: $id, productIds: $productIds) {
-                sellingPlanGroup { id }
+                removedProductIds
                 userErrors { field message }
               }
             }
@@ -187,12 +188,16 @@ public class AdminService {
     private static final String UPDATE_SELLING_PLAN_GROUP = """
             mutation sellingPlanGroupUpdate($id: ID!, $input: SellingPlanGroupInput!) {
               sellingPlanGroupUpdate(id: $id, input: $input) {
-                sellingPlanGroup {
-                  id
-                  sellingPlans(first: 20) {
-                    edges { node { id } }
-                  }
-                }
+                sellingPlanGroup { id }
+                userErrors { field message }
+              }
+            }
+            """;
+
+    private static final String DELETE_SELLING_PLAN_GROUP = """
+            mutation sellingPlanGroupDelete($id: ID!) {
+              sellingPlanGroupDelete(id: $id) {
+                deletedSellingPlanGroupId
                 userErrors { field message }
               }
             }
@@ -432,6 +437,44 @@ public class AdminService {
                 .toList();
 
         return new SubscriptionContractsResponse(contracts.size(), contracts);
+    }
+
+    public LinkProductResponse removeSellingPlanFromGroup(RemoveSellingPlanRequest request) {
+        var variables = Map.of(
+                "id", request.sellingPlanGroupId(),
+                "input", Map.of("sellingPlansToDelete", request.sellingPlanIds())
+        );
+
+        var result = shopifyAdminClient.updateSellingPlanGroup(
+                new GraphQLRequest(UPDATE_SELLING_PLAN_GROUP, variables));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for sellingPlanGroupUpdate");
+        }
+
+        var payload = result.data().sellingPlanGroupUpdate();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success",
+                "Removed %d selling plan(s)".formatted(request.sellingPlanIds().size()));
+    }
+
+    public LinkProductResponse deleteSellingGroup(String groupId) {
+        var result = shopifyAdminClient.deleteSellingPlanGroup(
+                new GraphQLRequest(DELETE_SELLING_PLAN_GROUP, Map.of("id", groupId)));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for sellingPlanGroupDelete");
+        }
+
+        var payload = result.data().sellingPlanGroupDelete();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return new LinkProductResponse("success", "Deleted selling plan group: " + groupId);
     }
 
     public CheckoutUrlResponse buildCheckoutUrl(CheckoutUrlRequest request) {

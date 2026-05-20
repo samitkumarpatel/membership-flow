@@ -303,6 +303,11 @@
               </span>
               <span class="chip chip-grey chip-sm" v-if="g.sellingPlans.length === 0">No plans</span>
             </div>
+
+            <button class="btn btn-danger btn-xs" :disabled="gs(g.id).deletingGroup"
+                    @click.stop="deleteGroup(g.id)" title="Delete this group">
+              {{ gs(g.id).deletingGroup ? '…' : 'Delete' }}
+            </button>
           </div>
 
           <!-- Expanded body -->
@@ -341,6 +346,12 @@
                     <div class="plan-name">{{ planLabel(p) }}</div>
                     <div class="plan-gid">{{ shortId(p.id) }}</div>
                   </div>
+                  <button class="btn btn-danger btn-xs"
+                          :disabled="!!gs(g.id).deletingPlan[p.id] || g.sellingPlans.length <= 1"
+                          :title="g.sellingPlans.length <= 1 ? 'Cannot delete the only selling plan — delete the group instead' : 'Remove selling plan'"
+                          @click.stop="deletePlan(g.id, p.id)">
+                    {{ gs(g.id).deletingPlan[p.id] ? '…' : '✕' }}
+                  </button>
                 </div>
               </div>
               <div class="empty-state" v-else style="padding:.75rem;">
@@ -690,6 +701,9 @@ createApp({
           newPlans: [{ interval: 'MONTH', interval_count: 1, discount_percentage: 10.0 }],
           savingPlan: false,
           planError: '',
+          /* delete plan / delete group */
+          deletingPlan: {},
+          deletingGroup: false,
         });
       }
       return this.groupState[id];
@@ -942,6 +956,40 @@ createApp({
         ? `Every ${p.intervalCount} ${(p.interval ?? '').toLowerCase()}s`
         : (map[p.interval] ?? p.interval ?? 'Plan');
       return p.discountPercentage > 0 ? `${freq} · ${p.discountPercentage}% off` : freq;
+    },
+
+    /* ── Delete selling plan ── */
+    async deletePlan(groupId, planId) {
+      const s = this.gs(groupId);
+      s.deletingPlan = { ...s.deletingPlan, [planId]: true };
+      try {
+        await post('/api/admin/selling-groups/remove-plan', {
+          selling_plan_group_id: groupId,
+          selling_plan_ids: [planId],
+        });
+        await this.silentRefreshGroups();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        const d = { ...s.deletingPlan };
+        delete d[planId];
+        s.deletingPlan = d;
+      }
+    },
+
+    /* ── Delete selling group ── */
+    async deleteGroup(groupId) {
+      if (!confirm('Delete this selling plan group? This cannot be undone.')) return;
+      const s = this.gs(groupId);
+      s.deletingGroup = true;
+      try {
+        await del('/api/admin/selling-groups?groupId=' + encodeURIComponent(groupId));
+        await this.loadGroups();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        s.deletingGroup = false;
+      }
     },
 
     /* ── Subscription contracts ── */

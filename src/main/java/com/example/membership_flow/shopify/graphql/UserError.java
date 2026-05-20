@@ -1,3 +1,5 @@
 package com.example.membership_flow.shopify.graphql;
 
-public record UserError(String field, String message) {}
+import java.util.List;
+
+public record UserError(List<String> field, String message) {}

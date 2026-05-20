@@ -11,9 +11,11 @@ import com.example.membership_flow.admin.dto.LinkProductRequest;
 import com.example.membership_flow.admin.dto.LinkProductResponse;
 import com.example.membership_flow.admin.dto.ProductsResponse;
 import com.example.membership_flow.admin.dto.RemoveProductRequest;
+import com.example.membership_flow.admin.dto.RemoveSellingPlanRequest;
 import com.example.membership_flow.admin.dto.SellingGroupsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,6 +65,16 @@ public class AdminController {
     @PostMapping("/selling-groups/add-plan")
     public LinkProductResponse addSellingPlan(@RequestBody AddSellingPlanRequest request) {
         return adminService.addSellingPlanToGroup(request);
+    }
+
+    @PostMapping("/selling-groups/remove-plan")
+    public LinkProductResponse removeSellingPlan(@RequestBody RemoveSellingPlanRequest request) {
+        return adminService.removeSellingPlanFromGroup(request);
+    }
+
+    @DeleteMapping("/selling-groups")
+    public LinkProductResponse deleteSellingGroup(@RequestParam String groupId) {
+        return adminService.deleteSellingGroup(groupId);
     }
 
     @PostMapping("/checkout-url")
