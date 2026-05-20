@@ -12,14 +12,25 @@
     /* ── Header ── */
     header {
       background: #fff; border-bottom: 1px solid #ede9ff;
-      padding: 1.1rem 2rem; display: flex; align-items: center; gap: 1rem;
-      position: sticky; top: 0; z-index: 100;
+      padding: 0 2rem; display: flex; align-items: center; gap: 1rem;
+      position: sticky; top: 0; z-index: 100; height: 60px;
     }
-    .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; flex-shrink: 0; }
     .brand-icon { width: 32px; height: 32px; background: #6c63ff; border-radius: 8px; display: grid; place-items: center; font-size: 1rem; flex-shrink: 0; }
     .brand-name { font-size: 1.05rem; font-weight: 700; color: #1a1a2e; }
-    .header-tagline { font-size: .8rem; color: #9b8ed6; }
     .header-spacer { flex: 1; }
+
+    /* ── Nav tabs ── */
+    .header-nav { display: flex; align-items: stretch; gap: 0; height: 100%; margin-left: 1.5rem; }
+    .nav-tab {
+      display: flex; align-items: center; gap: .4rem;
+      padding: 0 1.1rem; font-size: .88rem; font-weight: 600; color: #888;
+      cursor: pointer; border: none; background: none;
+      border-bottom: 3px solid transparent; transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .nav-tab:hover { color: #6c63ff; }
+    .nav-tab.active { color: #6c63ff; border-bottom-color: #6c63ff; }
 
     /* ── Cart button in header ── */
     .cart-btn {
@@ -212,6 +223,115 @@
     .btn-checkout:hover { background: #574fd6; }
     .btn-checkout:disabled { opacity: .4; cursor: not-allowed; }
 
+    /* ── Manage view ── */
+    .manage-view { min-height: calc(100vh - 60px); background: #f8f7ff; }
+    .manage-hero {
+      background: linear-gradient(135deg, #1a1a2e 0%, #2d2b55 100%);
+      padding: 3rem 2rem 2.5rem; text-align: center;
+    }
+    .manage-hero h1 { font-size: 1.75rem; font-weight: 800; color: #fff; margin-bottom: .5rem; letter-spacing: -.02em; }
+    .manage-hero p { font-size: .95rem; color: rgba(255,255,255,.55); max-width: 440px; margin: 0 auto; line-height: 1.6; }
+    .manage-body { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+    /* ── Manage subscription section ── */
+    .manage-section {
+      /* used inside .manage-body now — no outer margin needed */
+    }
+    .manage-card {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(108,99,255,.08);
+      overflow: hidden;
+    }
+    .manage-card-body { padding: 1.5rem 1.75rem; }
+
+    /* Lookup form */
+    .lookup-row { display: flex; gap: .75rem; align-items: flex-end; flex-wrap: wrap; }
+    .lookup-field { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 200px; }
+    .lookup-field label { font-size: .68rem; font-weight: 700; color: #9b8ed6; text-transform: uppercase; letter-spacing: .05em; }
+    .lookup-field input {
+      padding: .6rem .9rem; border: 1.5px solid #e2e5ed; border-radius: 9px;
+      font-size: .9rem; color: #1a1a2e; transition: border-color .15s;
+    }
+    .lookup-field input:focus { outline: none; border-color: #6c63ff; box-shadow: 0 0 0 3px rgba(108,99,255,.1); }
+    .lookup-sep { font-size: .78rem; color: #bbb; font-weight: 600; padding-bottom: .55rem; }
+    .btn-lookup {
+      padding: .62rem 1.4rem; background: #6c63ff; color: #fff; border: none;
+      border-radius: 9px; font-size: .88rem; font-weight: 700; cursor: pointer;
+      transition: background .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-lookup:hover:not(:disabled) { background: #574fd6; }
+    .btn-lookup:disabled { opacity: .45; cursor: not-allowed; }
+
+    .lookup-error { margin-top: .85rem; font-size: .82rem; color: #c0392b; background: #fff4f4; border: 1.5px solid #f8c9c9; border-radius: 9px; padding: .6rem .9rem; }
+    .lookup-empty { margin-top: 1rem; text-align: center; color: #bbb; font-size: .9rem; padding: 1.5rem 0; }
+
+    /* Customer result header */
+    .customer-found { margin-top: 1.25rem; }
+    .customer-greeting {
+      display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem;
+      padding-bottom: .85rem; border-bottom: 1px solid #f0eeff;
+    }
+    .customer-avatar {
+      width: 38px; height: 38px; background: #ede9ff; border-radius: 50%;
+      display: grid; place-items: center; font-size: 1rem; flex-shrink: 0;
+    }
+    .customer-name { font-size: .95rem; font-weight: 700; color: #1a1a2e; }
+    .customer-email { font-size: .75rem; color: #9b8ed6; }
+
+    /* Subscription contract cards */
+    .sub-contract-list { display: flex; flex-direction: column; gap: .85rem; }
+    .sub-contract-card {
+      border: 1.5px solid #ede9ff; border-radius: 12px; overflow: hidden;
+    }
+    .sub-contract-card.status-PAUSED { border-color: #ffe0a3; }
+    .sub-contract-card.status-CANCELLED { border-color: #f8c9c9; opacity: .75; }
+    .sub-contract-card.status-EXPIRED  { border-color: #e0e0e0; opacity: .65; }
+
+    .sub-contract-top {
+      padding: .85rem 1.1rem; display: flex; align-items: center; gap: .75rem;
+      flex-wrap: wrap; background: #faf9ff;
+    }
+    .sub-contract-card.status-PAUSED .sub-contract-top  { background: #fffbf0; }
+    .sub-contract-card.status-CANCELLED .sub-contract-top { background: #fff8f8; }
+
+    .sub-contract-info { flex: 1; min-width: 0; }
+    .sub-contract-plan { font-size: .95rem; font-weight: 700; color: #1a1a2e; margin-bottom: .18rem; }
+    .sub-contract-meta { font-size: .75rem; color: #999; }
+
+    .sub-status-badge {
+      font-size: .67rem; font-weight: 700; padding: .2rem .55rem; border-radius: 20px; white-space: nowrap;
+    }
+    .sub-status-ACTIVE    { background: #e6faf0; color: #1d9e6a; }
+    .sub-status-PAUSED    { background: #fff3cd; color: #c07c00; }
+    .sub-status-CANCELLED { background: #ffeaea; color: #c0392b; }
+    .sub-status-FAILED    { background: #ffeaea; color: #c0392b; }
+    .sub-status-EXPIRED   { background: #f0f0f0; color: #888; }
+
+    .sub-contract-actions { display: flex; gap: .45rem; flex-shrink: 0; }
+    .sub-action-btn {
+      padding: .35rem .8rem; border-radius: 7px; font-size: .78rem; font-weight: 600;
+      cursor: pointer; border: 1.5px solid; transition: background .12s, opacity .12s;
+      white-space: nowrap;
+    }
+    .sub-action-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .sub-action-pause  { background: #fff8e6; color: #c07c00; border-color: #f0c060; }
+    .sub-action-pause:not(:disabled):hover  { background: #fff3cd; }
+    .sub-action-resume { background: #e6faf0; color: #1d9e6a; border-color: #7dd9b0; }
+    .sub-action-resume:not(:disabled):hover { background: #d4f5e7; }
+    .sub-action-cancel { background: #ffeaea; color: #c0392b; border-color: #f8c9c9; }
+    .sub-action-cancel:not(:disabled):hover { background: #fad6d6; }
+
+    .sub-contract-lines {
+      padding: .65rem 1.1rem; display: flex; flex-direction: column; gap: .3rem;
+      border-top: 1px solid #f0eeff;
+    }
+    .sub-contract-card.status-PAUSED .sub-contract-lines  { border-color: #ffe0a3; }
+    .sub-contract-card.status-CANCELLED .sub-contract-lines { border-color: #f8c9c9; }
+    .sub-line-row { display: flex; align-items: center; gap: .6rem; font-size: .82rem; }
+    .sub-line-title { font-weight: 500; flex: 1; }
+    .sub-line-plan { font-size: .7rem; color: #9b8ed6; background: #f0eeff; padding: .1rem .4rem; border-radius: 4px; }
+    .sub-line-price { font-size: .8rem; font-weight: 700; color: #1a1a2e; }
+
     /* ── Toast ── */
     .toast {
       position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px);
@@ -226,18 +346,29 @@
 <div id="app">
 
   <header>
-    <a class="brand" href="#">
+    <a class="brand" href="#" @click.prevent="currentView = 'plans'">
       <div class="brand-icon">✦</div>
       <span class="brand-name">Membership</span>
     </a>
-    <span class="header-tagline">Subscribe &amp; save</span>
+    <nav class="header-nav">
+      <button :class="['nav-tab', currentView === 'plans' ? 'active' : '']"
+              @click="currentView = 'plans'">
+        🛍️ Browse Plans
+      </button>
+      <button :class="['nav-tab', currentView === 'manage' ? 'active' : '']"
+              @click="switchToManage()">
+        📋 My Subscriptions
+      </button>
+    </nav>
     <div class="header-spacer"></div>
-    <button class="cart-btn" @click="cartOpen = true">
+    <button class="cart-btn" v-if="currentView === 'plans'" @click="cartOpen = true">
       🛒 Cart
       <span class="cart-badge" v-if="cart.length > 0">{{ cart.length }}</span>
     </button>
   </header>
 
+  <!-- ══ Plans view ══ -->
+  <template v-if="currentView === 'plans'">
   <div class="hero">
     <h1>Choose your subscription</h1>
     <p>Subscribe to your favourite products and save on every order — delivered on your schedule.</p>
@@ -291,6 +422,114 @@
       </div>
     </div>
   </main>
+  </template><!-- /plans view -->
+
+  <!-- ══ Manage view ══ -->
+  <div class="manage-view" v-if="currentView === 'manage'">
+    <div class="manage-hero">
+      <h1>My Subscriptions</h1>
+      <p>Enter your email or phone number to find and manage your subscriptions.</p>
+    </div>
+    <div class="manage-body">
+    <div class="manage-section">
+    <div class="manage-card">
+      <div class="manage-card-body">
+
+        <!-- Lookup form -->
+        <div class="lookup-row">
+          <div class="lookup-field">
+            <label>Email address</label>
+            <input type="email" v-model="lookupEmail" placeholder="you@example.com"
+                   @keyup.enter="lookupSubscriptions" :disabled="lookupLoading"/>
+          </div>
+          <span class="lookup-sep">or</span>
+          <div class="lookup-field">
+            <label>Phone number</label>
+            <input type="tel" v-model="lookupPhone" placeholder="+1 555 000 0000"
+                   @keyup.enter="lookupSubscriptions" :disabled="lookupLoading"/>
+          </div>
+          <button class="btn-lookup" @click="lookupSubscriptions"
+                  :disabled="lookupLoading || (!lookupEmail.trim() && !lookupPhone.trim())">
+            {{ lookupLoading ? 'Searching…' : 'Find My Subscriptions' }}
+          </button>
+        </div>
+
+        <div class="lookup-error" v-if="lookupError">{{ lookupError }}</div>
+
+        <!-- Results -->
+        <template v-if="lookupDone">
+          <div class="lookup-empty" v-if="!lookupResult || lookupResult.count === 0">
+            No subscriptions found for that email / phone.
+          </div>
+
+          <div class="customer-found" v-else>
+            <div class="customer-greeting">
+              <div class="customer-avatar">👤</div>
+              <div>
+                <div class="customer-name">{{ (lookupResult.first_name + ' ' + lookupResult.last_name).trim() || 'Hello!' }}</div>
+                <div class="customer-email">{{ lookupResult.email }}</div>
+              </div>
+              <span style="margin-left:auto; font-size:.8rem; color:#9b8ed6;">
+                {{ lookupResult.count }} subscription{{ lookupResult.count !== 1 ? 's' : '' }} found
+              </span>
+            </div>
+
+            <div class="sub-contract-list">
+              <div v-for="c in lookupResult.contracts" :key="c.id"
+                   :class="['sub-contract-card', 'status-' + c.status]">
+
+                <div class="sub-contract-top">
+                  <div class="sub-contract-info">
+                    <div class="sub-contract-plan">
+                      {{ c.lines && c.lines.length ? c.lines[0].selling_plan_name || c.lines[0].title : 'Subscription' }}
+                    </div>
+                    <div class="sub-contract-meta">
+                      <span v-if="c.billing">{{ billingLabel(c.billing) }}</span>
+                      <span v-if="c.next_billing_date"> · Next billing {{ formatDate(c.next_billing_date) }}</span>
+                      <span v-if="!c.next_billing_date && c.status === 'CANCELLED'"> · Cancelled</span>
+                    </div>
+                  </div>
+
+                  <span :class="['sub-status-badge', 'sub-status-' + c.status]">{{ c.status }}</span>
+
+                  <div class="sub-contract-actions">
+                    <button v-if="c.status === 'ACTIVE'" class="sub-action-btn sub-action-pause"
+                            :disabled="!!actionInProgress[c.id]"
+                            @click="contractAction('pause', c.id)">
+                      {{ actionInProgress[c.id] === 'pause' ? 'Pausing…' : 'Pause' }}
+                    </button>
+                    <button v-if="c.status === 'PAUSED'" class="sub-action-btn sub-action-resume"
+                            :disabled="!!actionInProgress[c.id]"
+                            @click="contractAction('resume', c.id)">
+                      {{ actionInProgress[c.id] === 'resume' ? 'Resuming…' : 'Resume' }}
+                    </button>
+                    <button v-if="c.status === 'ACTIVE' || c.status === 'PAUSED'"
+                            class="sub-action-btn sub-action-cancel"
+                            :disabled="!!actionInProgress[c.id]"
+                            @click="contractAction('cancel', c.id)">
+                      {{ actionInProgress[c.id] === 'cancel' ? 'Cancelling…' : 'Cancel' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sub-contract-lines" v-if="c.lines && c.lines.length">
+                  <div class="sub-line-row" v-for="l in c.lines" :key="l.selling_plan_id">
+                    <span class="sub-line-title">{{ l.title }}</span>
+                    <span class="sub-line-plan" v-if="l.selling_plan_name">{{ l.selling_plan_name }}</span>
+                    <span class="sub-line-price" v-if="l.price">{{ formatPrice(l.price) }} {{ l.currency }}</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </template>
+
+      </div>
+    </div>
+    </div><!-- /manage-section -->
+    </div><!-- /manage-body -->
+  </div><!-- /manage-view -->
 
   <!-- Cart overlay -->
   <div class="cart-overlay" :class="{ open: cartOpen }" @click="cartOpen = false"></div>
@@ -344,6 +583,7 @@ const CART_KEY = 'membership_cart';
 createApp({
   data() {
     return {
+      currentView: 'plans',
       products: [],
       loading: true,
       error: '',
@@ -352,6 +592,14 @@ createApp({
       toastVisible: false,
       toastMessage: '',
       _toastTimer: null,
+      /* subscription lookup */
+      lookupEmail: '',
+      lookupPhone: '',
+      lookupLoading: false,
+      lookupError: '',
+      lookupDone: false,
+      lookupResult: null,
+      actionInProgress: {},
     };
   },
 
@@ -476,6 +724,85 @@ createApp({
       const map = { DAY: 'day', WEEK: 'week', MONTH: 'month', YEAR: 'year' };
       const unit = map[interval] || interval.toLowerCase();
       return count > 1 ? `${count} ${unit}s` : unit;
+    },
+
+    switchToManage() {
+      this.currentView = 'manage';
+      this.lookupEmail = '';
+      this.lookupPhone = '';
+      this.lookupError = '';
+      this.lookupDone = false;
+      this.lookupResult = null;
+      this.actionInProgress = {};
+    },
+
+    async lookupSubscriptions() {
+      if (!this.lookupEmail.trim() && !this.lookupPhone.trim()) return;
+      this.lookupLoading = true;
+      this.lookupError = '';
+      this.lookupDone = false;
+      this.lookupResult = null;
+      try {
+        const res = await fetch('/api/customer/subscriptions/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.lookupEmail.trim() || null, phone: this.lookupPhone.trim() || null }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || err.title || res.statusText);
+        }
+        this.lookupResult = await res.json();
+        this.lookupDone = true;
+      } catch (e) {
+        this.lookupError = e.message;
+      } finally {
+        this.lookupLoading = false;
+      }
+    },
+
+    async contractAction(action, contractId) {
+      if (action === 'cancel' && !confirm('Cancel this subscription? This cannot be undone.')) return;
+      this.actionInProgress = { ...this.actionInProgress, [contractId]: action };
+      const newStatus = action === 'pause' ? 'PAUSED' : action === 'resume' ? 'ACTIVE' : 'CANCELLED';
+      try {
+        const res = await fetch(`/api/customer/subscriptions/${action}?contractId=${encodeURIComponent(contractId)}`, {
+          method: 'POST',
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || err.title || res.statusText);
+        }
+        // optimistic update
+        if (this.lookupResult && this.lookupResult.contracts) {
+          const idx = this.lookupResult.contracts.findIndex(c => c.id === contractId);
+          if (idx !== -1) {
+            this.lookupResult.contracts[idx] = { ...this.lookupResult.contracts[idx], status: newStatus };
+          }
+        }
+        const labels = { pause: 'Subscription paused', resume: 'Subscription resumed', cancel: 'Subscription cancelled' };
+        this.showToast(labels[action] || 'Done');
+      } catch (e) {
+        this.showToast('Error: ' + e.message);
+      } finally {
+        const s = { ...this.actionInProgress };
+        delete s[contractId];
+        this.actionInProgress = s;
+      }
+    },
+
+    billingLabel(billing) {
+      if (!billing) return '';
+      const map = { DAY: 'Daily', WEEK: 'Weekly', MONTH: 'Monthly', YEAR: 'Yearly' };
+      const count = billing.interval_count ?? billing.intervalCount ?? 1;
+      const interval = billing.interval;
+      if (!interval) return '';
+      return count > 1 ? `Every ${count} ${interval.toLowerCase()}s` : (map[interval] ?? interval);
+    },
+
+    formatDate(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     },
 
     formatPrice(price) {
