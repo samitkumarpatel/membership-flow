@@ -15,7 +15,7 @@ import org.springframework.web.service.registry.ImportHttpServices;
 @Configuration
 @EnableConfigurationProperties(ShopifyProperties.class)
 public class ShopifyClientConfig {
-
+    private final String X_SHOPIFY_ACCESS_TOKEN = "X-Shopify-Access-Token";
     /**
      * "shopify-auth" group — token endpoint only, no auth header needed.
      */
@@ -40,7 +40,7 @@ public class ShopifyClientConfig {
         return groups -> groups.filterByName("shopify").forEachClient((_, builder) ->
                 builder.baseUrl("https://%s/admin/api/%s".formatted(props.storeDomain(), props.apiVersion()))
                        .requestInterceptor((request, body, execution) -> {
-                           request.getHeaders().set("X-Shopify-Access-Token", tokenService.getAccessToken());
+                           request.getHeaders().set(X_SHOPIFY_ACCESS_TOKEN, tokenService.getAccessToken());
                            return execution.execute(request, body);
                        })
         );

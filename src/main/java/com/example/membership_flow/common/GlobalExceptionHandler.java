@@ -12,7 +12,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ShopifyUserErrorException.class)
     ProblemDetail handleShopifyUserError(ShopifyUserErrorException ex) {
-        var detail = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        var detail = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage());
         detail.setTitle("Shopify API Error");
         detail.setProperty("errors", ex.getErrors());
         return detail;
