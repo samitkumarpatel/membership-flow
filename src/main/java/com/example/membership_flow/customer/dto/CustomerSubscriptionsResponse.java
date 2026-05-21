@@ -1,5 +1,7 @@
 package com.example.membership_flow.customer.dto;
 
+import com.example.membership_flow.billing.BillingAttemptInfo;
+
 import java.util.List;
 
 public record CustomerSubscriptionsResponse(
@@ -16,7 +18,8 @@ public record CustomerSubscriptionsResponse(
             String nextBillingDate,
             String createdAt,
             BillingPolicy billing,
-            List<LineItem> lines
+            List<LineItem> lines,
+            List<BillingAttemptInfo> billingAttempts
     ) {}
 
     public record BillingPolicy(String interval, int intervalCount) {}

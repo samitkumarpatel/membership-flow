@@ -6,6 +6,8 @@ import com.example.membership_flow.shopify.graphql.SellingPlanGroupAddProductsRe
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupCreateResult;
 import com.example.membership_flow.shopify.graphql.SellingPlanGroupDeleteResult;
 import com.example.membership_flow.shopify.graphql.CustomerSubscriptionContractsQueryResult;
+import com.example.membership_flow.shopify.graphql.SubscriptionBillingAttemptCreateResult;
+import com.example.membership_flow.shopify.graphql.SubscriptionBillingAttemptQueryResult;
 import com.example.membership_flow.shopify.graphql.SubscriptionContractActivateResult;
 import com.example.membership_flow.shopify.graphql.SubscriptionContractCancelResult;
 import com.example.membership_flow.shopify.graphql.SubscriptionContractPauseResult;
@@ -66,4 +68,10 @@ public interface ShopifyAdminClient {
 
     @PostExchange("/graphql.json")
     CustomerSubscriptionContractsQueryResult findCustomerContracts(@RequestBody GraphQLRequest request);
+
+    @PostExchange("/graphql.json")
+    SubscriptionBillingAttemptCreateResult createBillingAttempt(@RequestBody GraphQLRequest request);
+
+    @PostExchange("/graphql.json")
+    SubscriptionBillingAttemptQueryResult getBillingAttempt(@RequestBody GraphQLRequest request);
 }

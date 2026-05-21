@@ -1,5 +1,6 @@
 package com.example.membership_flow.admin.dto;
 
+import com.example.membership_flow.billing.BillingAttemptInfo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -14,7 +15,8 @@ public record SubscriptionContractsResponse(int total, List<ContractItem> contra
             CustomerInfo customer,
             BillingPolicy billing,
             List<LineItem> lines,
-            List<OrderRef> orders
+            List<OrderRef> orders,
+            List<BillingAttemptInfo> billingAttempts
     ) {}
 
     public record CustomerInfo(

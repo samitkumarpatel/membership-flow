@@ -29,8 +29,21 @@ public record CustomerSubscriptionContractsQueryResult(Data data) {
             String nextBillingDate,
             String createdAt,
             BillingPolicy billingPolicy,
-            LineConnection lines
+            LineConnection lines,
+            BillingAttemptConnection billingAttempts
     ) {}
+
+    public record BillingAttemptConnection(List<BillingAttemptEdge> edges) {}
+    public record BillingAttemptEdge(BillingAttemptNode node) {}
+    public record BillingAttemptNode(
+            String id,
+            boolean ready,
+            String errorCode,
+            String errorMessage,
+            String createdAt,
+            OrderRef order
+    ) {}
+    public record OrderRef(String id, String name) {}
 
     public record BillingPolicy(String interval, Integer intervalCount) {}
 

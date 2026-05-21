@@ -1,7 +1,13 @@
 package com.example.membership_flow.admin;
 
 import com.example.membership_flow.admin.dto.AddSellingPlanRequest;
+import com.example.membership_flow.admin.dto.BillingAttemptRequest;
+import com.example.membership_flow.admin.dto.BillingAttemptResponse;
 import com.example.membership_flow.admin.dto.SubscriptionContractsResponse;
+import com.example.membership_flow.billing.BillingAttemptInfo;
+import com.example.membership_flow.billing.BillingAttemptRecord;
+import com.example.membership_flow.billing.BillingAttemptRepository;
+import com.example.membership_flow.billing.BillingAttemptSummary;
 import com.example.membership_flow.admin.dto.CreateSellingGroupRequest;
 import com.example.membership_flow.admin.dto.CreateSellingGroupResponse;
 import com.example.membership_flow.admin.dto.GroupProductsResponse;
@@ -21,8 +27,12 @@ import com.example.membership_flow.shopify.graphql.GraphQLRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import org.springframework.resilience.annotation.Retryable;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 
 @Service
 @RequiredArgsConstructor
@@ -181,6 +191,21 @@ public class AdminService {
                         }
                       }
                     }
+                    billingAttempts(first: 10, reverse: true) {
+                      edges {
+                        node {
+                          id
+                          ready
+                          errorCode
+                          errorMessage
+                          createdAt
+                          order {
+                            id
+                            name
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -233,6 +258,7 @@ public class AdminService {
             """;
 
     private final ShopifyAdminClient shopifyAdminClient;
+    private final BillingAttemptRepository billingAttemptRepository;
 
     public SellingGroupsResponse listSellingGroups() {
         var result = shopifyAdminClient.listSellingPlanGroups(new GraphQLRequest(LIST_SELLING_PLAN_GROUPS, null));
@@ -458,9 +484,21 @@ public class AdminService {
                                             oe.node().id(), oe.node().name(), oe.node().createdAt()))
                                     .toList();
 
+                    var attempts = n.billingAttempts() == null ? List.<BillingAttemptInfo>of()
+                            : n.billingAttempts().edges().stream()
+                                    .map(ae -> {
+                                        var a = ae.node();
+                                        var orderId = a.order() != null ? a.order().id() : null;
+                                        var orderName = a.order() != null ? a.order().name() : null;
+                                        return new BillingAttemptInfo(
+                                                a.id(), a.ready(), a.errorCode(), a.errorMessage(),
+                                                a.createdAt(), orderId, orderName);
+                                    })
+                                    .toList();
+
                     return new SubscriptionContractsResponse.ContractItem(
                             n.id(), n.status(), n.nextBillingDate(), n.createdAt(),
-                            customer, billing, lines, orders);
+                            customer, billing, lines, orders, attempts);
                 })
                 .toList();
 
@@ -625,6 +663,124 @@ public class AdminService {
 
         return new LinkProductResponse("success",
                 "Contract activated: " + payload.contract().id());
+    }
+
+    public List<BillingAttemptSummary> listBillingAttempts(String contractId, String status) {
+        List<BillingAttemptRecord> records;
+
+        if (contractId != null && status != null) {
+            records = billingAttemptRepository.findByContractIdAndStatusOrderByCreatedAtDesc(
+                    contractId, BillingAttemptRecord.Status.valueOf(status.toUpperCase()));
+        } else if (contractId != null) {
+            records = billingAttemptRepository.findByContractIdOrderByCreatedAtDesc(contractId);
+        } else if (status != null) {
+            records = billingAttemptRepository.findByStatusOrderByCreatedAtDesc(
+                    BillingAttemptRecord.Status.valueOf(status.toUpperCase()));
+        } else {
+            records = billingAttemptRepository.findAllByOrderByCreatedAtDesc();
+        }
+
+        return records.stream().map(BillingAttemptSummary::from).toList();
+    }
+
+    private static final String CREATE_BILLING_ATTEMPT = """
+            mutation subscriptionBillingAttemptCreate(
+              $subscriptionContractId: ID!
+              $subscriptionBillingAttemptInput: SubscriptionBillingAttemptInput!
+            ) {
+              subscriptionBillingAttemptCreate(
+                subscriptionContractId: $subscriptionContractId
+                subscriptionBillingAttemptInput: $subscriptionBillingAttemptInput
+              ) {
+                subscriptionBillingAttempt {
+                  id
+                  ready
+                  errorCode
+                  errorMessage
+                  order {
+                    id
+                    name
+                    totalPriceSet {
+                      shopMoney { amount currencyCode }
+                    }
+                  }
+                }
+                userErrors { field message }
+              }
+            }
+            """;
+
+    private static final String GET_BILLING_ATTEMPT = """
+            query getBillingAttempt($id: ID!) {
+              subscriptionBillingAttempt(id: $id) {
+                id
+                ready
+                errorCode
+                errorMessage
+                order {
+                  id
+                  name
+                }
+              }
+            }
+            """;
+
+    @Retryable(
+            includes = {HttpServerErrorException.class, ResourceAccessException.class},
+            maxRetries = 3,
+            delay = 500,
+            multiplier = 2,
+            maxDelay = 5000)
+    public BillingAttemptResponse createBillingAttempt(BillingAttemptRequest request) {
+        var idempotencyKey = request.contractId().replaceAll("[^a-zA-Z0-9]", "")
+                + "-" + LocalDate.now() + "-" + request.attemptNumber();
+        var variables = Map.of(
+                "subscriptionContractId", request.contractId(),
+                "subscriptionBillingAttemptInput", Map.of("idempotencyKey", idempotencyKey)
+        );
+
+        var result = shopifyAdminClient.createBillingAttempt(new GraphQLRequest(CREATE_BILLING_ATTEMPT, variables));
+
+        if (result.data() == null) {
+            throw new IllegalStateException("Shopify returned no data for subscriptionBillingAttemptCreate");
+        }
+
+        var payload = result.data().subscriptionBillingAttemptCreate();
+        if (!payload.userErrors().isEmpty()) {
+            throw new ShopifyUserErrorException(payload.userErrors());
+        }
+
+        return toBillingAttemptResponse(payload.subscriptionBillingAttempt());
+    }
+
+    public BillingAttemptResponse getBillingAttempt(String attemptId) {
+        var result = shopifyAdminClient.getBillingAttempt(
+                new GraphQLRequest(GET_BILLING_ATTEMPT, Map.of("id", attemptId)));
+
+        if (result.data() == null || result.data().subscriptionBillingAttempt() == null) {
+            throw new IllegalArgumentException("Billing attempt not found: " + attemptId);
+        }
+
+        var attempt = result.data().subscriptionBillingAttempt();
+        var orderId = attempt.order() != null ? attempt.order().id() : null;
+        var orderName = attempt.order() != null ? attempt.order().name() : null;
+        return new BillingAttemptResponse(attempt.id(), attempt.ready(), attempt.errorCode(),
+                attempt.errorMessage(), orderId, orderName, null, null);
+    }
+
+    private BillingAttemptResponse toBillingAttemptResponse(
+            com.example.membership_flow.shopify.graphql.SubscriptionBillingAttemptCreateResult.BillingAttempt attempt) {
+        String orderId = null, orderName = null, amount = null, currency = null;
+        if (attempt.order() != null) {
+            orderId = attempt.order().id();
+            orderName = attempt.order().name();
+            if (attempt.order().totalPriceSet() != null && attempt.order().totalPriceSet().shopMoney() != null) {
+                amount = attempt.order().totalPriceSet().shopMoney().amount();
+                currency = attempt.order().totalPriceSet().shopMoney().currencyCode();
+            }
+        }
+        return new BillingAttemptResponse(attempt.id(), attempt.ready(), attempt.errorCode(),
+                attempt.errorMessage(), orderId, orderName, amount, currency);
     }
 
     private Map<String, Object> buildSellingPlanInput(CreateSellingGroupRequest.SellingPlanInput plan) {

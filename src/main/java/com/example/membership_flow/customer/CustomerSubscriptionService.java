@@ -6,6 +6,7 @@ import com.example.membership_flow.admin.dto.ActivateContractRequest;
 import com.example.membership_flow.admin.dto.CancelContractRequest;
 import com.example.membership_flow.admin.dto.LinkProductResponse;
 import com.example.membership_flow.admin.dto.PauseContractRequest;
+import com.example.membership_flow.billing.BillingAttemptInfo;
 import com.example.membership_flow.customer.dto.CustomerLookupRequest;
 import com.example.membership_flow.customer.dto.CustomerSubscriptionsResponse;
 import com.example.membership_flow.shopify.ShopifyAdminClient;
@@ -41,6 +42,21 @@ public class CustomerSubscriptionService {
                           billingPolicy {
                             interval
                             intervalCount
+                          }
+                          billingAttempts(first: 10, reverse: true) {
+                            edges {
+                              node {
+                                id
+                                ready
+                                errorCode
+                                errorMessage
+                                createdAt
+                                order {
+                                  id
+                                  name
+                                }
+                              }
+                            }
                           }
                           lines(first: 5) {
                             edges {
@@ -111,8 +127,19 @@ public class CustomerSubscriptionService {
                                                 ln.sellingPlanName(), ln.sellingPlanId(), price, currency);
                                     })
                                     .toList();
+                    var attempts = c.billingAttempts() == null ? List.<BillingAttemptInfo>of()
+                            : c.billingAttempts().edges().stream()
+                                    .map(ae -> {
+                                        var a = ae.node();
+                                        var orderId = a.order() != null ? a.order().id() : null;
+                                        var orderName = a.order() != null ? a.order().name() : null;
+                                        return new BillingAttemptInfo(
+                                                a.id(), a.ready(), a.errorCode(), a.errorMessage(),
+                                                a.createdAt(), orderId, orderName);
+                                    })
+                                    .toList();
                     return new CustomerSubscriptionsResponse.ContractItem(
-                            c.id(), c.status(), c.nextBillingDate(), c.createdAt(), billing, lines);
+                            c.id(), c.status(), c.nextBillingDate(), c.createdAt(), billing, lines, attempts);
                 })
                 .toList();
 

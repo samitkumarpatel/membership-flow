@@ -5,7 +5,8 @@
       "WebFetch(domain:spring.io)",
       "Bash(./mvnw compile *)",
       "Bash(./mvnw test *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(./mvnw dependency:tree)"
     ]
   }
 }

@@ -14,8 +14,21 @@ public record SubscriptionContractsQueryResult(Data data) {
             Customer customer,
             SubscriptionLineConnection lines,
             SubscriptionBillingPolicy billingPolicy,
-            OrderConnection orders
+            OrderConnection orders,
+            BillingAttemptConnection billingAttempts
     ) {}
+
+    public record BillingAttemptConnection(List<BillingAttemptEdge> edges) {}
+    public record BillingAttemptEdge(BillingAttemptNode node) {}
+    public record BillingAttemptNode(
+            String id,
+            boolean ready,
+            String errorCode,
+            String errorMessage,
+            String createdAt,
+            OrderRef order
+    ) {}
+    public record OrderRef(String id, String name) {}
     public record Customer(String id, String email, String firstName, String lastName) {}
     public record SubscriptionLineConnection(List<SubscriptionLineEdge> edges) {}
     public record SubscriptionLineEdge(SubscriptionLineNode node) {}

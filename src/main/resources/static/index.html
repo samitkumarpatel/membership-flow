@@ -958,7 +958,7 @@ createApp({
       s.adding = true;
       s.addError = '';
       try {
-        await post('/api/admin/link-product-to-plan', {
+        await post('/api/admin/selling-groups/products', {
           selling_plan_group_id: groupId,
           product_ids: [pid],
         });
@@ -1013,7 +1013,7 @@ createApp({
       const s = this.gs(groupId);
       s.removing = { ...s.removing, [productId]: true };
       try {
-        await post('/api/admin/remove-products-from-plan', {
+        await del('/api/admin/selling-groups/products', {
           selling_plan_group_id: groupId,
           product_ids: [productId],
         });
@@ -1052,7 +1052,7 @@ createApp({
       s.savingPlan = true;
       s.planError = '';
       try {
-        await post('/api/admin/selling-groups/add-plan', {
+        await post('/api/admin/selling-groups/plans', {
           selling_plan_group_id: group.id,
           selling_plans: s.newPlans,
         });
@@ -1072,7 +1072,7 @@ createApp({
       this.createError = '';
       this.createResult = null;
       try {
-        this.createResult = await post('/api/admin/create-selling-group', {
+        this.createResult = await post('/api/admin/selling-groups', {
           name: this.form.name.trim(),
           selling_plans: this.form.selling_plans,
         });
@@ -1131,7 +1131,7 @@ createApp({
       s.savingEdit = true;
       s.editError = '';
       try {
-        await post('/api/admin/selling-groups/update-plan', {
+        await patch('/api/admin/selling-groups/plans', {
           selling_plan_group_id: groupId,
           selling_plan_id: planId,
           interval: s.editingPlan.interval,
@@ -1152,7 +1152,7 @@ createApp({
       const s = this.gs(groupId);
       s.deletingPlan = { ...s.deletingPlan, [planId]: true };
       try {
-        await post('/api/admin/selling-groups/remove-plan', {
+        await del('/api/admin/selling-groups/plans', {
           selling_plan_group_id: groupId,
           selling_plan_ids: [planId],
         });
@@ -1174,7 +1174,7 @@ createApp({
       s.savingGroupName = true;
       s.groupNameError = '';
       try {
-        await post('/api/admin/selling-groups/update-name', { group_id: group.id, name });
+        await patch('/api/admin/selling-groups', { group_id: group.id, name });
         group.name = name;
         s.editingGroupName = null;
       } catch (e) {
@@ -1209,7 +1209,7 @@ createApp({
       if (!confirm('Cancel this subscription contract? The customer will lose access immediately.')) return;
       this.cancellingContracts = { ...this.cancellingContracts, [contractId]: true };
       try {
-        await post('/api/admin/subscription-contracts/cancel', { contract_id: contractId });
+        await patch('/api/admin/subscription-contracts/cancel', { contract_id: contractId });
         this._setContractStatus(contractId, 'CANCELLED');
         this.loadContracts();
       } catch (e) {
@@ -1226,7 +1226,7 @@ createApp({
       if (!confirm('Pause this subscription? The customer can be resumed later.')) return;
       this.pausingContracts = { ...this.pausingContracts, [contractId]: true };
       try {
-        await post('/api/admin/subscription-contracts/pause', { contract_id: contractId });
+        await patch('/api/admin/subscription-contracts/pause', { contract_id: contractId });
         this._setContractStatus(contractId, 'PAUSED');
         this.loadContracts();
       } catch (e) {
@@ -1242,7 +1242,7 @@ createApp({
     async resumeContract(contractId) {
       this.resumingContracts = { ...this.resumingContracts, [contractId]: true };
       try {
-        await post('/api/admin/subscription-contracts/activate', { contract_id: contractId });
+        await patch('/api/admin/subscription-contracts/activate', { contract_id: contractId });
         this._setContractStatus(contractId, 'ACTIVE');
         this.loadContracts();
       } catch (e) {
